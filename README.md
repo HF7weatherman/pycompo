@@ -1,2 +1,2 @@
 # pycompo
-A Python-toolbox for composite-based analysis.
+A python-based toolbox for composite analysis.
