@@ -4,6 +4,85 @@ from scipy.ndimage import gaussian_filter
 from typing import Tuple
 
 
+# ------------------------------------------------------------------------------
+# Functions for building a climatology
+# ------------------------------------
+def build_hourly_climatology(
+        dset: xr.DataArray | xr.Dataset,
+        clim_baseyear: str,
+        ) -> xr.DataArray | xr.Dataset:
+    """
+    Computes the hourly climatology of the input xarray DataArray or Dataset.
+
+    Parameters
+    ----------
+    dset : xr.DataArray or xr.Dataset
+        Input data with a 'time' dimension to compute climatology from.
+    clim_baseyear : str, default="2000"
+        The base year to use when converting group coordinates to datetime64.
+        This year is assigned to the time coordinate of the climatology.
+
+    Returns
+    -------
+    xr.DataArray or xr.Dataset
+        Hourly climatology.
+    """
+    dset = dset.assign_coords(group_time=_create_grouper_coord(dset))
+    climatology = dset.groupby('group_time').mean(dim='time')
+    climatology = _grouper_coord2datetime64(climatology, clim_baseyear)
+
+    return climatology
+
+
+def _create_grouper_coord(dset: xr.DataArray | xr.Dataset):
+    return xr.apply_ufunc(
+        _format_time_label,
+        dset['time'].dt.month,
+        dset['time'].dt.day,
+        dset['time'].dt.hour,
+        vectorize=True,
+        dask='allowed',
+        output_dtypes=[str]
+    )
+
+
+def _format_time_label(month, day, hour):
+    return f"{month:02d}-{day:02d}_{hour:02d}"
+
+
+def _grouper_coord2datetime64(
+        climatology: xr.DataArray | xr.Dataset,
+        clim_baseyear: str
+        ) -> xr.DataArray | xr.Dataset:
+    # Split group_time into month, day, and hour and assign as a coordinate
+    group_time_str = climatology['group_time'].astype(str)
+    month = group_time_str.str.slice(0, 2).astype(int)
+    day   = group_time_str.str.slice(3, 5).astype(int)
+    hour  = group_time_str.str.slice(6, 8).astype(int)
+    climatology = climatology.assign_coords(month=month, day=day, hour=hour)
+
+    # Build np.datetime64 coordinate
+    date_strings = [
+        f"{clim_baseyear}-{m:02d}-{d:02d}T{h:02d}:00"
+        for m, d, h in zip(
+            climatology['month'].values,
+            climatology['day'].values,
+            climatology['hour'].values
+            )
+    ]
+    clim_time = np.array(date_strings, dtype='datetime64[m]')
+
+    # Assign as a new coordinate
+    climatology = climatology.assign_coords(time=("group_time", clim_time))
+    climatology = climatology.swap_dims({'group_time': 'time'}).\
+        drop(['group_time', 'month', 'day', 'hour'])
+    
+    return climatology
+
+
+# ------------------------------------------------------------------------------
+# Functions for Gaussian filtering
+# --------------------------------
 def get_gaussian_filter_bg_ano(
         dset: xr.Dataset | xr.DataArray,
         **kwargs,
