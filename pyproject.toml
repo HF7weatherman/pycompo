@@ -24,3 +24,6 @@ dynamic = ["version"]
 
 [tool.setuptools.dynamic]
 version = {attr = "pycompo.__version__"}
+
+[tool.setuptools]
+packages = ["pycompo"]
