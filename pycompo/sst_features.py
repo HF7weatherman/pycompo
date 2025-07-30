@@ -164,32 +164,27 @@ def _build_structure_element(connectivity: int=4) -> list:
 # ------------------------------------------------------------------------------
 # Extract data around SST features
 # --------------------------------
-def get_feature_data_bbox(
-        feature_map: xr.DataArray,
+def cutout_feature_data(
+        data: xr.DataArray,
         feature_props: xr.Dataset,
         search_RadRatio: float,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
-    feature_data_bbox_list = []
+    N_lat = data.sizes['lat']
+    N_lon = data.sizes['lon']
+
+    feature_data = []
     for idx, feature_id in enumerate(feature_props['feature_id']):
         feature = feature_props.isel(feature=idx)
-        feature_data_bbox_list.append(
-            _get_feature_data_bbox(feature, search_RadRatio)
-            )
+        data_sample = data.sel(time=feature['time'])
 
-    feature_props['data_bbox_idx'] = xr.DataArray(
-        name = 'feature_data_bbox',
-        dims = ['feature', 'data_bbox_component'],
-        coords = {
-            'feature_id': ('feature', feature_props['feature_id'].data),
-            'data_bbox_component': (
-                'data_bbox_component',
-                ['lat_lower', 'lat_upper', 'lon_left', 'lon_right'],
-                )
-            },
-        data = np.array(feature_data_bbox_list)
-        )
-    
-    return _remove_lat_edge_bbox(feature_map, feature_props)
+        feature_data_bbox = _get_feature_data_bbox(feature, search_RadRatio)
+        if _is_lat_edge_bbox(feature_data_bbox, N_lat):
+            continue
+        
+        feature_data.append(
+            _cutout_feature_data(data_sample, feature_data_bbox, N_lon)
+            )
+    return feature_data
 
 
 def _get_feature_data_bbox(
@@ -203,10 +198,37 @@ def _get_feature_data_bbox(
         'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
         'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
     }
-    return (
-        feature_data_bbox['lat_lower'], feature_data_bbox['lat_upper'],
-        feature_data_bbox['lon_left'], feature_data_bbox['lon_right'],
-        )
+    return feature_data_bbox
+
+
+def _is_lat_edge_bbox(
+        feature_data_bbox: dict[str, int],
+        N_lat: int,
+        ) -> bool:
+    m1 = (feature_data_bbox['lat_lower'] >= 0)
+    m2 = (feature_data_bbox['lat_upper'] < N_lat)
+    return not (m1 and m2)
+
+
+def _cutout_feature_data(
+        data: xr.Dataset,
+        feature_data_bbox: dict[str, int],
+        N_lon: int,
+        ) -> xr.Dataset:
+    lat_lower = feature_data_bbox['lat_lower']
+    lat_upper = feature_data_bbox['lat_upper']
+    lon_left  = feature_data_bbox['lon_left']
+    lon_right = feature_data_bbox['lon_right']
+
+    lat_select_idxs = np.arange(lat_lower, lat_upper+1)    
+    if lon_right+1 >= N_lon:
+        lon_select_idxs = np.concatenate(
+            [np.arange(lon_left, N_lon), np.arange(0, (lon_right+1) - N_lon)]
+            )
+    else: 
+        lon_select_idxs = np.arange(lon_left, lon_right+1)
+
+    return data.isel(lat=lat_select_idxs, lon=lon_select_idxs)
 
 
 def _remove_lat_edge_bbox(
