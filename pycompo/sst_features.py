@@ -6,8 +6,7 @@ from skimage.measure import regionprops
 
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
-from pyorg.core.clusters import get_clusters, get_clusters_areas, \
-    get_clusters_centroids
+from pyorg.core.clusters import get_clusters, get_clusters_areas
 
 
 # ------------------------------------------------------------------------------
@@ -21,69 +20,58 @@ def get_sst_features(
     structure_element =_build_structure_element(connectivity)
 
     # Initialisation
-    clusters_list, centroids_list, radiuses_list, areas_list, times_list \
-        = ([] for _ in range(5))
-    total_clusters = 0
-    cells_area = get_cells_area(data)
+    features_list, radii_list, areas_list, times_list = ([] for _ in range(4))
+    total_features = 0
+    cell_area = get_cells_area(data)
     
     def _get_sst_features_single_timestep(data, threshold):
-        nonlocal total_clusters
+        nonlocal total_features
         
         # Create threshold-based binary map and extract clusters from it
         threshold, regions = convective_regions(data, threshold=threshold)
-        clusters, clusters_number = get_clusters(
-            regions,
-            periodic_longitude_clustering=True, remove_edge_clusters=True,
-            structure=structure_element,
+        features, features_number = get_clusters(
+            regions, periodic_longitude_clustering=True,
+            remove_edge_clusters=True, structure=structure_element,
             )
         
-        cluster_indices = list(range(1, clusters_number + 1))
-        cluster_centroids = get_clusters_centroids(
-            clusters, cluster_indices, regions
-            )
-        cluster_areas = get_clusters_areas(
-            clusters, cluster_indices, cells_area
-            )
-        cluster_areas = cluster_areas/1000**2  # km^2
-        cluster_radii = np.sqrt(cluster_areas / np.pi) # km
+        feature_indices = list(range(1, features_number + 1))
+        feature_areas = get_clusters_areas(features, feature_indices, cell_area)
+        feature_areas = feature_areas/1000**2  # km^2
+        feature_radii = np.sqrt(feature_areas / np.pi) # km
 
-        clusters += total_clusters
-        clusters = clusters.where(clusters != total_clusters, 0)
-        clusters_list.append(clusters)
-        total_clusters += clusters_number
+        features += total_features
+        features = features.where(features != total_features, 0)
+        features_list.append(features)
+        total_features += features_number
         
         # append that stuff to list
-        areas_list.extend(cluster_areas.tolist())
-        centroids_list.extend(cluster_centroids)
-        radiuses_list.extend(cluster_radii.tolist())
+        areas_list.extend(feature_areas.tolist())
+        radii_list.extend(feature_radii.tolist())
 
-        return cluster_radii
+        return feature_radii
 
     if "time" in data.dims and data.sizes["time"] > 1:
         for time in data.time:
-            clusters_radiuses = _get_sst_features_single_timestep(
+            feature_radii = _get_sst_features_single_timestep(
                 data.sel(time=time), threshold
                 )
-            times_list = times_list + [time.values]*len(clusters_radiuses)
-            clusters = xr.concat(clusters_list, "time") 
+            times_list = times_list + [time.values]*len(feature_radii)
+            features = xr.concat(features_list, "time") 
 
     else: 
         _get_sst_features_single_timestep(data, threshold)
     
-    centroids_lats, centroids_lons = zip(*centroids_list)
-    cluster_props = xr.Dataset(
+    feature_props = xr.Dataset(
         coords={
-            'cluster_id': ("cluster", list(range(1, total_clusters + 1)))
+            'feature_id': ("feature", list(range(1, total_features + 1)))
         },
         data_vars={
-            'centroid_lat': ("cluster", list(centroids_lats)),
-            'centroid_lon': ("cluster", list(centroids_lons)),
-            'radius_km': ("cluster", radiuses_list),
-            'area_km2': ("cluster", areas_list),
-            'time': ("cluster", times_list),
+            'radius_km': ("feature", radii_list),
+            'area_km2': ("feature", areas_list),
+            'time': ("feature", times_list),
             }
         )
-    return clusters, cluster_props
+    return features, feature_props
 
 
 def _build_structure_element(connectivity: int=4) -> list:
@@ -134,59 +122,59 @@ def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
         first_val = values[0]
         array = np.array(values, dtype=float)
         if isinstance(first_val, tuple):
-            data_vars[prop] = (("cluster", f"{prop}_component"), array)
+            data_vars[f'{prop}_idx'] = (("feature", f"{prop}_component"), array)
         else:
-            data_vars[prop] = (("cluster",), array)
+            data_vars[f'{prop}_idx'] = (("feature",), array)
 
     return xr.Dataset(
-        coords={'cluster_id': ("cluster", feature_props_dict['label'])},
+        coords={'feature_id': ("feature", feature_props_dict['label'])},
         data_vars=data_vars
-        ).drop('label')
+        ).drop('label_idx')
 
 
-def get_cutout_data_box_idxs(
+def get_feature_data_bbox(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
         search_RadRatio: float,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
-    feature_props['cutout_idxs'] = _get_cutout_data_box_idxs(
+    feature_props['data_bbox_idx'] = _get_feature_data_bbox(
         feature_props, search_RadRatio,
     )
-    return remove_lat_edge_boxes(feature_map, feature_props)
+    return remove_lat_edge_bboxs(feature_map, feature_props)
 
 
-def _get_cutout_data_box_idxs(
+def _get_feature_data_bbox(
         feature_props: xr.Dataset,
         search_RadRatio: float,
         ) -> xr.DataArray:
-    cutout_idxs_list = []
-    for cluster in feature_props['cluster_id']:
-        sample = feature_props.where(
-            feature_props['cluster_id']==cluster, drop=True
+    feature_data_bboxs_list = []
+    for feature_id in feature_props['feature_id']:
+        feature = feature_props.where(
+            feature_props['feature_id']==feature_id, drop=True
             ).squeeze()
-        R_maj = search_RadRatio/2 * sample['axis_major_length']
-        cutout_idxs = {
-            'lat_lower': _round_away_from_zero(sample['centroid'][0] - R_maj),
-            'lat_upper': _round_away_from_zero(sample['centroid'][0] + R_maj),
-            'lon_left': _round_away_from_zero(sample['centroid'][1] - R_maj),
-            'lon_right': _round_away_from_zero(sample['centroid'][1] + R_maj),
+        R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
+        feature_data_bbox = {
+            'lat_lower': _round_away_from_zero(feature['centroid_idx'][0]-R_maj),
+            'lat_upper': _round_away_from_zero(feature['centroid_idx'][0]+R_maj),
+            'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
+            'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
         }
-        cutout_idxs_list.append(
-            (cutout_idxs['lat_lower'], cutout_idxs['lat_upper'],
-             cutout_idxs['lon_left'], cutout_idxs['lon_right'])
+        feature_data_bboxs_list.append(
+            (feature_data_bbox['lat_lower'], feature_data_bbox['lat_upper'],
+             feature_data_bbox['lon_left'], feature_data_bbox['lon_right'])
              )
     
     return xr.DataArray(
-        name = 'cutout_idxs',
-        dims = ['cluster', 'cutout_idx_component'],
+        name = 'feature_data_bbox',
+        dims = ['feature', 'data_bbox_component'],
         coords = {
-            'cluster_id': ('cluster', feature_props['cluster_id'].data),
-            'cutout_idx_component': (
-                'cutout_idx_component',
+            'feature_id': ('feature', feature_props['feature_id'].data),
+            'data_bbox_component': (
+                'data_bbox_component',
                 ['lat_lower', 'lat_upper', 'lon_left', 'lon_right'],
                 )
             },
-        data = np.array(cutout_idxs_list)
+        data = np.array(feature_data_bboxs_list)
         )
 
 
@@ -210,15 +198,15 @@ def remove_small_features(
     return feature_map, feature_props
     
 
-def remove_lat_edge_boxes(
+def remove_lat_edge_bboxs(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
-        ):
+        ) -> Tuple[xr.DataArray, xr.Dataset]:
     N_lat = feature_map.sizes['lat']
-    m1 = (feature_props['cutout_idxs'].sel(cutout_idx_component='lat_lower') >= 0)
-    m2 = (feature_props['cutout_idxs'].sel(cutout_idx_component='lat_upper') <= N_lat)
+    m1 = (feature_props['data_bbox_idx'].sel(data_bbox_component='lat_lower') >= 0)
+    m2 = (feature_props['data_bbox_idx'].sel(data_bbox_component='lat_upper') < N_lat)
     mask = m1 & m2
-    feature_props = feature_props.sel(cluster=mask.values)
+    feature_props = feature_props.sel(feature=mask.values)
     feature_map = _update_feature_map(feature_map, feature_props)
     return feature_map, feature_props
 
@@ -228,5 +216,5 @@ def _update_feature_map(
     feature_props: xr.Dataset,
     ) -> xr.DataArray:
     return feature_map.where(
-        feature_map.isin(feature_props['cluster_id']) | feature_map.isnull(), 0
+        feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
         )
