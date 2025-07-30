@@ -12,7 +12,26 @@ from pyorg.core.clusters import get_clusters, get_clusters_areas
 # ------------------------------------------------------------------------------
 # Functions to get SST features and basic statistics
 # --------------------------------------------------
-def get_sst_features(
+def extract_sst_features(
+        sst_dset: xr.DataArray,
+        threshold: float,
+        connectivity: int,
+        property_list: list[str],
+        feature_min_area: float=0.,
+        ) -> Tuple[xr.DataArray, xr.Dataset]:
+    feature_map, feature_props = _get_sst_features(
+        sst_dset, threshold=threshold, connectivity=connectivity
+        )
+    feature_props = xr.merge([
+        feature_props, _get_feature_props_idx_space(feature_map, property_list)
+        ])
+    feature_map, feature_props = _remove_small_features(
+        feature_map, feature_props, feature_min_area,
+        )
+    return feature_map, feature_props
+
+
+def _get_sst_features(
         data: xr.DataArray,
         threshold: float,
         connectivity: int,
@@ -74,27 +93,7 @@ def get_sst_features(
     return features, feature_props
 
 
-def _build_structure_element(connectivity: int=4) -> list:
-    if connectivity not in [4, 8]:
-        raise ValueError(
-            "Please provide a valid feature connectivity! Only 4- and 8-" +
-            "connectivity supported."
-            )
-    if connectivity == 4:
-        structure_element = [[0, 1, 0],
-                             [1, 1, 1],
-                             [0, 1, 0]]
-    elif connectivity == 8:
-        structure_element = [[1, 1, 1],
-                             [1, 1, 1],
-                             [1, 1, 1]]
-    return structure_element
-
-
-# ------------------------------------------------------------------------------
-# Functions to get more advanced statistics of SST features
-# ---------------------------------------------------------
-def get_feature_props_idx_space(
+def _get_feature_props_idx_space(
         feature_map: xr.DataArray,
         props_lst: list,
         ) -> xr.Dataset:
@@ -115,6 +114,19 @@ def get_feature_props_idx_space(
     return _transform_feature_props_idx_space_to_xrarray(feature_props_dict)
 
 
+def _remove_small_features(
+        feature_map: xr.DataArray,
+        feature_props: xr.Dataset,
+        feature_min_area: float,
+        area_varname: str='area_km2',
+        ) -> Tuple[xr.DataArray, xr.Dataset]:
+    feature_props = feature_props.where(
+        feature_props[area_varname]>feature_min_area, drop=True,
+        )
+    feature_map = _update_feature_map(feature_map, feature_props)
+    return feature_map, feature_props
+
+
 def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
     data_vars = {}
 
@@ -132,6 +144,26 @@ def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
         ).drop('label_idx')
 
 
+def _build_structure_element(connectivity: int=4) -> list:
+    if connectivity not in [4, 8]:
+        raise ValueError(
+            "Please provide a valid feature connectivity! Only 4- and 8-" +
+            "connectivity supported."
+            )
+    if connectivity == 4:
+        structure_element = [[0, 1, 0],
+                             [1, 1, 1],
+                             [0, 1, 0]]
+    elif connectivity == 8:
+        structure_element = [[1, 1, 1],
+                             [1, 1, 1],
+                             [1, 1, 1]]
+    return structure_element
+
+
+# ------------------------------------------------------------------------------
+# Extract data around SST features
+# --------------------------------
 def get_feature_data_bbox(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
@@ -140,7 +172,7 @@ def get_feature_data_bbox(
     feature_props['data_bbox_idx'] = _get_feature_data_bbox(
         feature_props, search_RadRatio,
     )
-    return remove_lat_edge_bboxs(feature_map, feature_props)
+    return _remove_lat_edge_bbox(feature_map, feature_props)
 
 
 def _get_feature_data_bbox(
@@ -178,27 +210,7 @@ def _get_feature_data_bbox(
         )
 
 
-def _round_away_from_zero(x: float) -> int:
-    return int(math.copysign(math.ceil(abs(x)), x))
-
-
-# ------------------------------------------------------------------------------
-# Subsampling of detected features
-# --------------------------------
-def remove_small_features(
-        feature_map: xr.DataArray,
-        feature_props: xr.Dataset,
-        feature_min_area: float,
-        area_varname: str='area_km2',
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
-    feature_props = feature_props.where(
-        feature_props[area_varname]>feature_min_area, drop=True,
-        )
-    feature_map = _update_feature_map(feature_map, feature_props)
-    return feature_map, feature_props
-    
-
-def remove_lat_edge_bboxs(
+def _remove_lat_edge_bbox(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
@@ -218,3 +230,7 @@ def _update_feature_map(
     return feature_map.where(
         feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
         )
+
+
+def _round_away_from_zero(x: float) -> int:
+    return int(math.copysign(math.ceil(abs(x)), x))
