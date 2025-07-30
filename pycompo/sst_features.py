@@ -169,34 +169,14 @@ def get_feature_data_bbox(
         feature_props: xr.Dataset,
         search_RadRatio: float,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
-    feature_props['data_bbox_idx'] = _get_feature_data_bbox(
-        feature_props, search_RadRatio,
-    )
-    return _remove_lat_edge_bbox(feature_map, feature_props)
+    feature_data_bbox_list = []
+    for idx, feature_id in enumerate(feature_props['feature_id']):
+        feature = feature_props.isel(feature=idx)
+        feature_data_bbox_list.append(
+            _get_feature_data_bbox(feature, search_RadRatio)
+            )
 
-
-def _get_feature_data_bbox(
-        feature_props: xr.Dataset,
-        search_RadRatio: float,
-        ) -> xr.DataArray:
-    feature_data_bboxs_list = []
-    for feature_id in feature_props['feature_id']:
-        feature = feature_props.where(
-            feature_props['feature_id']==feature_id, drop=True
-            ).squeeze()
-        R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
-        feature_data_bbox = {
-            'lat_lower': _round_away_from_zero(feature['centroid_idx'][0]-R_maj),
-            'lat_upper': _round_away_from_zero(feature['centroid_idx'][0]+R_maj),
-            'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
-            'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
-        }
-        feature_data_bboxs_list.append(
-            (feature_data_bbox['lat_lower'], feature_data_bbox['lat_upper'],
-             feature_data_bbox['lon_left'], feature_data_bbox['lon_right'])
-             )
-    
-    return xr.DataArray(
+    feature_props['data_bbox_idx'] = xr.DataArray(
         name = 'feature_data_bbox',
         dims = ['feature', 'data_bbox_component'],
         coords = {
@@ -206,7 +186,26 @@ def _get_feature_data_bbox(
                 ['lat_lower', 'lat_upper', 'lon_left', 'lon_right'],
                 )
             },
-        data = np.array(feature_data_bboxs_list)
+        data = np.array(feature_data_bbox_list)
+        )
+    
+    return _remove_lat_edge_bbox(feature_map, feature_props)
+
+
+def _get_feature_data_bbox(
+        feature: xr.Dataset,
+        search_RadRatio: float,
+        ) -> xr.DataArray:
+    R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
+    feature_data_bbox = {
+        'lat_lower': _round_away_from_zero(feature['centroid_idx'][0]-R_maj),
+        'lat_upper': _round_away_from_zero(feature['centroid_idx'][0]+R_maj),
+        'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
+        'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
+    }
+    return (
+        feature_data_bbox['lat_lower'], feature_data_bbox['lat_upper'],
+        feature_data_bbox['lon_left'], feature_data_bbox['lon_right'],
         )
 
 
