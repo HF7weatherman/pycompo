@@ -1,8 +1,9 @@
-import math
 import numpy as np
 from typing import Tuple
 import xarray as xr
 from skimage.measure import regionprops
+
+from pycompo.utils import round_away_from_zero
 
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
@@ -193,10 +194,10 @@ def _get_feature_data_bbox(
         ) -> xr.DataArray:
     R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
     feature_data_bbox = {
-        'lat_lower': _round_away_from_zero(feature['centroid_idx'][0]-R_maj),
-        'lat_upper': _round_away_from_zero(feature['centroid_idx'][0]+R_maj),
-        'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
-        'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
+        'lat_lower': round_away_from_zero(feature['centroid_idx'][0]-R_maj),
+        'lat_upper': round_away_from_zero(feature['centroid_idx'][0]+R_maj),
+        'lon_left':  round_away_from_zero(feature['centroid_idx'][1]-R_maj),
+        'lon_right': round_away_from_zero(feature['centroid_idx'][1]+R_maj),
     }
     return feature_data_bbox
 
@@ -229,10 +230,6 @@ def _cutout_feature_data(
         lon_select_idxs = np.arange(lon_left, lon_right+1)
 
     return data.isel(lat=lat_select_idxs, lon=lon_select_idxs)
-
-
-def _round_away_from_zero(x: float) -> int:
-    return int(math.copysign(math.ceil(abs(x)), x))
 
 
 # ------------------------------------------------------------------------------
