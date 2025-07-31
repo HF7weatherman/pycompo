@@ -165,7 +165,7 @@ def _build_structure_element(connectivity: int=4) -> list:
 # Extract data around SST features
 # --------------------------------
 def cutout_feature_data(
-        data: xr.DataArray,
+        data: xr.Dataset,
         feature_props: xr.Dataset,
         search_RadRatio: float,
         ) -> list[xr.Dataset]:
