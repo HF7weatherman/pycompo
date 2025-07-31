@@ -168,7 +168,7 @@ def cutout_feature_data(
         data: xr.DataArray,
         feature_props: xr.Dataset,
         search_RadRatio: float,
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
+        ) -> list[xr.Dataset]:
     N_lat = data.sizes['lat']
     N_lon = data.sizes['lon']
 
@@ -231,15 +231,22 @@ def _cutout_feature_data(
     return data.isel(lat=lat_select_idxs, lon=lon_select_idxs)
 
 
-def _remove_lat_edge_bbox(
+def _round_away_from_zero(x: float) -> int:
+    return int(math.copysign(math.ceil(abs(x)), x))
+
+
+# ------------------------------------------------------------------------------
+# Update generic feature information based on selected features
+# -------------------------------------------------------------
+def update_features(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
+        feature_data: list[xr.Dataset],
         ) -> Tuple[xr.DataArray, xr.Dataset]:
-    N_lat = feature_map.sizes['lat']
-    m1 = (feature_props['data_bbox_idx'].sel(data_bbox_component='lat_lower') >= 0)
-    m2 = (feature_props['data_bbox_idx'].sel(data_bbox_component='lat_upper') < N_lat)
-    mask = m1 & m2
-    feature_props = feature_props.sel(feature=mask.values)
+    keep_features = [int(data['feature_id'].values) for data in feature_data]
+    feature_props = feature_props.where(
+        feature_props['feature_id'].isin(keep_features), drop=True,
+        )
     feature_map = _update_feature_map(feature_map, feature_props)
     return feature_map, feature_props
 
@@ -251,7 +258,3 @@ def _update_feature_map(
     return feature_map.where(
         feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
         )
-
-
-def _round_away_from_zero(x: float) -> int:
-    return int(math.copysign(math.ceil(abs(x)), x))
