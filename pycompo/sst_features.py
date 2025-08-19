@@ -1,8 +1,10 @@
-import math
 import numpy as np
-from typing import Tuple
 import xarray as xr
 from skimage.measure import regionprops
+from typing import Tuple
+
+from pycompo.utils import round_away_from_zero
+import pycompo.ellipse as pcellipse
 
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
@@ -25,6 +27,7 @@ def extract_sst_features(
     feature_props = xr.merge([
         feature_props, _get_feature_props_idx_space(feature_map, property_list)
         ])
+    feature_props = add_ellipse_details(feature_props)
     feature_map, feature_props = _remove_small_features(
         feature_map, feature_props, feature_min_area,
         )
@@ -134,7 +137,7 @@ def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
         first_val = values[0]
         array = np.array(values, dtype=float)
         if isinstance(first_val, tuple):
-            data_vars[f'{prop}_idx'] = (("feature", f"{prop}_component"), array)
+            data_vars[f'{prop}_idx'] = (("feature", f"idx_component"), array)
         else:
             data_vars[f'{prop}_idx'] = (("feature",), array)
 
@@ -159,6 +162,42 @@ def _build_structure_element(connectivity: int=4) -> list:
                              [1, 1, 1],
                              [1, 1, 1]]
     return structure_element
+
+
+
+def add_ellipse_details(
+        feature_props: xr.Dataset,
+        ) -> xr.Dataset:
+    """Calculate polar angle in radians from ellipse orientation"""
+    polar_angle_rad = [
+        pcellipse.calc_polar_angle_rad(x)
+        for x in feature_props['orientation_idx'].values
+        ]
+    feature_props = feature_props.assign(
+        polar_angle_rad=(('feature',), polar_angle_rad),
+    )
+
+    # Calculate ellipse axes end points
+    axis_major_end_idx = [
+        pcellipse.calc_axis_major_end(length, angle)
+        for length, angle in zip(
+            feature_props['axis_major_length_idx'].values,
+            feature_props['polar_angle_rad'].values
+            )
+    ]
+    axis_minor_end_idx = [
+        pcellipse.calc_axis_minor_end(length, angle)
+        for length, angle in zip(
+            feature_props['axis_minor_length_idx'].values,
+            feature_props['polar_angle_rad'].values
+            )
+    ]
+
+    feature_props = feature_props.assign(
+        axis_major_end_idx=(('feature', 'idx_component'), axis_major_end_idx),
+        axis_minor_end_idx=(('feature', 'idx_component'), axis_minor_end_idx),
+        )
+    return feature_props
 
 
 # ------------------------------------------------------------------------------
@@ -193,10 +232,10 @@ def _get_feature_data_bbox(
         ) -> xr.DataArray:
     R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
     feature_data_bbox = {
-        'lat_lower': _round_away_from_zero(feature['centroid_idx'][0]-R_maj),
-        'lat_upper': _round_away_from_zero(feature['centroid_idx'][0]+R_maj),
-        'lon_left':  _round_away_from_zero(feature['centroid_idx'][1]-R_maj),
-        'lon_right': _round_away_from_zero(feature['centroid_idx'][1]+R_maj),
+        'lat_lower': round_away_from_zero(feature['centroid_idx'][0]-R_maj),
+        'lat_upper': round_away_from_zero(feature['centroid_idx'][0]+R_maj),
+        'lon_left':  round_away_from_zero(feature['centroid_idx'][1]-R_maj),
+        'lon_right': round_away_from_zero(feature['centroid_idx'][1]+R_maj),
     }
     return feature_data_bbox
 
@@ -229,10 +268,6 @@ def _cutout_feature_data(
         lon_select_idxs = np.arange(lon_left, lon_right+1)
 
     return data.isel(lat=lat_select_idxs, lon=lon_select_idxs)
-
-
-def _round_away_from_zero(x: float) -> int:
-    return int(math.copysign(math.ceil(abs(x)), x))
 
 
 # ------------------------------------------------------------------------------

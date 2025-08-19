@@ -1,4 +1,5 @@
 import xarray as xr
+import math
 
 def build_circular_rolling_avg(
         dset: xr.DataArray | xr.Dataset,
@@ -21,3 +22,7 @@ def build_circular_rolling_avg(
         time=slice(extend_len, extend_len + dset.sizes['time'])
         )
     return result
+
+
+def round_away_from_zero(x: float) -> int:
+    return int(math.copysign(math.ceil(abs(x)), x))
