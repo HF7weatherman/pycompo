@@ -45,6 +45,36 @@ def spherical2cartesian_featurecentric(
     return feature_data_out
 
 
+def rotated_feature_centric_cartesian_coords(
+        feature_centric_data_in: list[xr.Dataset],
+        feature_props: xr.Dataset,
+        ) -> list[xr.Dataset]:
+    feature_centric_data_out = []
+    for idx, feature_id in enumerate(feature_props['feature_id']):
+        feature = feature_props.isel(feature=idx)
+        data = feature_centric_data_in[idx]
+
+        rotated_feature_centric_coords = _calc_rotated_feature_centric_coords(
+            data['feature_centric_x'], data['feature_centric_y'],
+            feature['polar_angle_rad']
+        )
+        data['rotated_feature_centric_x'] = rotated_feature_centric_coords[0]
+        data['rotated_feature_centric_y'] = rotated_feature_centric_coords[1]
+        feature_centric_data_out.append(data)
+    
+    return feature_centric_data_out
+
+
+def _calc_rotated_feature_centric_coords(
+        x: xr.DataArray,
+        y: xr.DataArray,
+        rot_angle_rad: xr.DataArray,
+        ) -> Tuple[xr.DataArray, xr.DataArray]:
+    x_new = x * np.cos(rot_angle_rad) + y * np.sin(rot_angle_rad)
+    y_new = -x * np.sin(rot_angle_rad) + y * np.cos(rot_angle_rad)
+    return x_new, y_new
+
+
 def _adjust_lon_jump(
         data_lon: xr.DataArray,
         centroid_lon: float,
