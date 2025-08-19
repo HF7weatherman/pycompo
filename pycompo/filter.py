@@ -116,7 +116,7 @@ def get_gaussian_filter_bg_ano(
 
     for var in dset.data_vars:
         dset[f'{var}_bg'] = (gaussian_lowpass_filter(dset[var], **kwargs))
-        dset[f'{var}_ano'] = dset[var] - dset['ts_bg']
+        dset[f'{var}_ano'] = dset[var] - dset[f'{var}_bg']
 
     return dset
 
