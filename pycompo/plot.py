@@ -6,7 +6,6 @@ from matplotlib.patches import Ellipse
 from matplotlib.axes import Axes
 
 import pycompo.coord as pccoord
-import pycompo.ellipse as pcellipse
 
 def plot_preprocessing_overview_map(
         dset: xr.Dataset,
@@ -205,7 +204,7 @@ def plot_coord_transformation(
         )
     
     uas_bg_rotated, vas_bg_rotated = \
-        pccoord._calc_rotated_feature_centric_coords(
+        pccoord._calc_rota_featcen_cart_coords(
             props['bg_uas'], props['bg_vas'], props['polar_angle_rad'],
             )
     axs[1, 1].quiver(
@@ -213,8 +212,8 @@ def plot_coord_transformation(
         scale=50,
         )
 
-    for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')
     plt.tight_layout()
+    for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')
     plt.show()
     
     
@@ -223,7 +222,7 @@ def _plot_feature_ellipse_spherical(
         props: xr.Dataset,
         basic_dcoords: Tuple[float, float]):
     polar_angle_rad = props['polar_angle_rad'].values
-    major_end, minor_end = pcellipse.get_ellipse_featcen_spherical_coords(
+    major_end, minor_end = pccoord.get_ellipse_featcen_spher_coords(
         props, basic_dcoords,
         )
     _plot_feature_ellipse(axis, polar_angle_rad, major_end, minor_end)
@@ -236,7 +235,7 @@ def _plot_feature_ellipse_cartesian(
         basic_dcoords: Tuple[float, float],
         ):
     polar_angle_rad = props['polar_angle_rad'].values
-    major_end, minor_end = pcellipse.get_ellipse_featcen_cartesian_coords(
+    major_end, minor_end = pccoord.get_ellipse_featcen_cart_coords(
         props, basic_coords, basic_dcoords,
         )
     _plot_feature_ellipse(axis, polar_angle_rad, major_end, minor_end)
@@ -249,7 +248,7 @@ def _plot_feature_ellipse_rotated_cartesian(
         basic_dcoords: Tuple[float, float],
         ):
     major_end, minor_end = \
-        pcellipse.get_ellipse_featcen_rotated_cartesian_coords(
+        pccoord.get_ellipse_featcen_rota_cart_coords(
             props, basic_coords, basic_dcoords,
             )
     _plot_feature_ellipse(axis, 0.0, major_end, minor_end)

@@ -1,5 +1,4 @@
 from typing import Tuple
-import pycompo.coord as pccoord
 import xarray as xr
 import numpy as np
 
