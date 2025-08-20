@@ -168,7 +168,6 @@ def _build_structure_element(connectivity: int=4) -> list:
 def add_ellipse_details(
         feature_props: xr.Dataset,
         ) -> xr.Dataset:
-    """Calculate polar angle in radians from ellipse orientation"""
     polar_angle_rad = [
         pcellipse.calc_polar_angle_rad(x)
         for x in feature_props['orientation_idx'].values
