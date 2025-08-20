@@ -5,6 +5,7 @@ from typing import Tuple
 
 from pycompo.utils import round_away_from_zero
 import pycompo.ellipse as pcellipse
+import pycompo.coord as pccoord
 
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
@@ -168,12 +169,12 @@ def _build_structure_element(connectivity: int=4) -> list:
 def add_ellipse_details(
         feature_props: xr.Dataset,
         ) -> xr.Dataset:
-    polar_angle_rad = [
+    polar_angle_rad_idx = [
         pcellipse.calc_polar_angle_rad(x)
         for x in feature_props['orientation_idx'].values
         ]
     feature_props = feature_props.assign(
-        polar_angle_rad=(('feature',), polar_angle_rad),
+        polar_angle_rad_idx=(('feature',), polar_angle_rad_idx),
     )
 
     # Calculate ellipse axes end points
@@ -181,14 +182,14 @@ def add_ellipse_details(
         pcellipse.calc_axis_major_end(length, angle)
         for length, angle in zip(
             feature_props['axis_major_length_idx'].values,
-            feature_props['polar_angle_rad'].values
+            feature_props['polar_angle_rad_idx'].values
             )
     ]
     axis_minor_end_idx = [
         pcellipse.calc_axis_minor_end(length, angle)
         for length, angle in zip(
             feature_props['axis_minor_length_idx'].values,
-            feature_props['polar_angle_rad'].values
+            feature_props['polar_angle_rad_idx'].values
             )
     ]
 
@@ -202,6 +203,31 @@ def add_ellipse_details(
 # ------------------------------------------------------------------------------
 # Extract data around SST features
 # --------------------------------
+def get_featcen_data_cutouts(
+        dset: xr.Dataset,
+        feature_props: xr.Dataset,
+        search_RadRatio: float,
+        ) -> Tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
+    basic_coords = (dset['lat'], dset['lon'])
+
+    feature_data = cutout_feature_data(
+        dset, feature_props, search_RadRatio
+        )
+    dset['sst_feature'], feature_props = update_features(
+        dset['sst_feature'], feature_props, feature_data,
+        )
+    
+    feature_centric_data = pccoord.spherical2cartesian_featcen(
+        basic_coords, feature_data, feature_props,
+        )
+
+    feature_centric_data = pccoord.rota_featcen_cart_coords(
+        feature_centric_data, feature_props,
+        )
+    
+    return dset, feature_props, feature_centric_data
+
+
 def cutout_feature_data(
         data: xr.Dataset,
         feature_props: xr.Dataset,
