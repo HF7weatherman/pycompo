@@ -1,8 +1,11 @@
 from typing import Tuple
+import pycompo.coord as pccoord
 import xarray as xr
 import numpy as np
 
-
+# ------------------------------------------------------------------------------
+# Coordinate system transformation
+# --------------------------------
 def spherical2cartesian_featcen(
         basic_coords: Tuple[xr.DataArray, xr.DataArray],
         feature_data_in: list[xr.Dataset],
@@ -51,12 +54,12 @@ def rotated_feature_centric_cartesian_coords(
         ) -> list[xr.Dataset]:
     feature_centric_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
-        feature = feature_props.isel(feature=idx)
+        props = feature_props.isel(feature=idx)
         data = feature_centric_data_in[idx]
 
         rotated_feature_centric_coords = _calc_rotated_feature_centric_coords(
             data['feature_centric_x'], data['feature_centric_y'],
-            feature['polar_angle_rad']
+            props['polar_angle_rad']
         )
         data['rotated_feature_centric_x'] = rotated_feature_centric_coords[0]
         data['rotated_feature_centric_y'] = rotated_feature_centric_coords[1]
@@ -102,3 +105,58 @@ def _get_centroid_coords(
     centroid_exact_lon = lon[0].values + dlon*centroid_idxs[1]
 
     return (float(centroid_exact_lat.values), float(centroid_exact_lon.values))
+
+
+# ------------------------------------------------------------------------------
+# Get coordinates of ellipse in various coordinate systems
+# --------------------------------------------------------
+def get_ellipse_featcen_spherical_coords(
+        props: xr.Dataset,
+        basic_dcoords: Tuple[float, float],
+    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    dlat = basic_dcoords[0]
+    dlon = basic_dcoords[1]
+    major_end_idx = props['axis_major_end_idx'].values
+    minor_end_idx = props['axis_minor_end_idx'].values
+
+    major_end_spherical = (major_end_idx[0] * dlon, major_end_idx[1] * dlat)
+    minor_end_spherical = (minor_end_idx[0] * dlon, minor_end_idx[1] * dlat)
+    return (major_end_spherical, minor_end_spherical)
+
+
+def get_ellipse_featcen_cartesian_coords(
+        props: xr.Dataset,
+        basic_coords: Tuple[xr.DataArray, xr.DataArray],
+        basic_dcoords: Tuple[float, float],
+    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    dlat = basic_dcoords[0]
+    dlon = basic_dcoords[1]
+    major_end_idx = props['axis_major_end_idx'].values
+    minor_end_idx = props['axis_minor_end_idx'].values
+
+    centroid_lat, _ = pccoord._get_centroid_coords(
+        basic_coords, basic_dcoords, props['centroid_idx'],
+        )
+    dx = dlon * 111.195 * np.cos(np.deg2rad(centroid_lat + dlat))
+    dy = dlat * 111.195
+
+    major_end_cartesian = (major_end_idx[0] * dx, major_end_idx[1] * dy)
+    minor_end_cartesian = (minor_end_idx[0] * dx, minor_end_idx[1] * dy)
+    return (major_end_cartesian, minor_end_cartesian)
+
+
+def get_ellipse_featcen_rotated_cartesian_coords(
+        props: xr.Dataset,
+        basic_coords: Tuple[xr.DataArray, xr.DataArray],
+        basic_dcoords: Tuple[float, float],
+    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    major_end_cartesian, minor_end_cartesian = \
+        get_ellipse_featcen_cartesian_coords(props, basic_coords, basic_dcoords)
+
+    major_end_rotated_cartesian = pccoord._calc_rotated_feature_centric_coords(
+        major_end_cartesian[0], major_end_cartesian[1], props['polar_angle_rad']
+        )
+    minor_end_rotated_cartesian = pccoord._calc_rotated_feature_centric_coords(
+        minor_end_cartesian[0], minor_end_cartesian[1], props['polar_angle_rad']
+        )
+    return (major_end_rotated_cartesian, minor_end_rotated_cartesian)
