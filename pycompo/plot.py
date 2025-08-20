@@ -52,7 +52,7 @@ def plot_preprocessing_overview_map(
 
 def plot_coord_transformation(
         dset: xr.Dataset,
-        feature_props: xr.Dataset,
+        props: xr.Dataset,
         basic_coords: Tuple[xr.DataArray, xr.DataArray],
         var: str,
         dT_thresh: float
@@ -63,10 +63,10 @@ def plot_coord_transformation(
         basic_coords[1].diff('lon').mean().values,
     )
     centroid = pccoord._get_centroid_coords(
-        basic_coords, basic_dcoords, feature_props['centroid_idx']
+        basic_coords, basic_dcoords, props['centroid_idx']
         )
     
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+    _, axs = plt.subplots(2, 2, figsize=(10, 8))
 
     # Plot data in regular geophysical coordinates
     pl0 = axs[0, 0].pcolormesh(
@@ -142,7 +142,7 @@ def plot_coord_transformation(
         )
     axs[1, 1].scatter(0, 0, color='k')
 
-    axs[1, 1].set_title('Roated feature-centric Cart. coord.')
+    axs[1, 1].set_title('Rotated feature-centric Cartesian coordinate')
     axs[1, 1].set_xlabel('Feature-centric distance / km')
     axs[1, 1].set_ylabel('Feature-centric distance / km')
     plt.colorbar(
@@ -182,12 +182,35 @@ def plot_coord_transformation(
         )
 
     # Plot ellipse features
-    _plot_feature_ellipse_spherical(axs[0, 1], feature_props, basic_dcoords)
+    _plot_feature_ellipse_spherical(axs[0, 1], props, basic_dcoords)
     _plot_feature_ellipse_cartesian(
-        axs[1, 0], feature_props, basic_coords, basic_dcoords
+        axs[1, 0], props, basic_coords, basic_dcoords
         )
     _plot_feature_ellipse_rotated_cartesian(
-        axs[1, 1], feature_props, basic_coords, basic_dcoords
+        axs[1, 1], props, basic_coords, basic_dcoords
+        )
+    
+    # Plot wind features
+    axs[0, 0].quiver(
+        centroid[1], centroid[0], props['bg_uas'], props['bg_vas'],
+        scale=50,
+        )
+    axs[0, 1].quiver(
+        np.array([0]), np.array([0]), props['bg_uas'], props['bg_vas'],
+        scale=50,
+        )
+    axs[1, 0].quiver(
+        np.array([0]), np.array([0]), props['bg_uas'], props['bg_vas'],
+        scale=50,
+        )
+    
+    uas_bg_rotated, vas_bg_rotated = \
+        pccoord._calc_rotated_feature_centric_coords(
+            props['bg_uas'], props['bg_vas'], props['polar_angle_rad'],
+            )
+    axs[1, 1].quiver(
+        np.array([0]), np.array([0]), uas_bg_rotated, vas_bg_rotated,
+        scale=50,
         )
 
     for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')
