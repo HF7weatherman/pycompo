@@ -3,7 +3,7 @@ import xarray as xr
 import numpy as np
 
 
-def spherical2cartesian_featurecentric(
+def spherical2cartesian_featcen(
         basic_coords: Tuple[xr.DataArray, xr.DataArray],
         feature_data_in: list[xr.Dataset],
         feature_props: xr.Dataset,
@@ -14,10 +14,10 @@ def spherical2cartesian_featurecentric(
     dlon = lon.diff('lon').mean().values
 
     feature_data_out = []
-    for idx, feature_id in enumerate(feature_props['feature_id']):
-        feature = feature_props.isel(feature=idx)
+    for idx, _ in enumerate(feature_props['feature_id']):
+        props = feature_props.isel(feature=idx)
         centroid_lat, centroid_lon = _get_centroid_coords(
-            basic_coords, (dlat, dlon), feature['centroid_idx']
+            basic_coords, (dlat, dlon), props['centroid_idx']
             )
         data = feature_data_in[idx]
         
@@ -50,7 +50,7 @@ def rotated_feature_centric_cartesian_coords(
         feature_props: xr.Dataset,
         ) -> list[xr.Dataset]:
     feature_centric_data_out = []
-    for idx, feature_id in enumerate(feature_props['feature_id']):
+    for idx, _ in enumerate(feature_props['feature_id']):
         feature = feature_props.isel(feature=idx)
         data = feature_centric_data_in[idx]
 
