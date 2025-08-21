@@ -1,8 +1,6 @@
 import numpy as np
 from typing import Tuple
 
-
-
 def calc_polar_angle_rad(
         x: float
         ) -> float:

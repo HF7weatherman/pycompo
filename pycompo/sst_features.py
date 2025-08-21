@@ -3,9 +3,7 @@ import xarray as xr
 from skimage.measure import regionprops
 from typing import Tuple
 
-from pycompo.utils import round_away_from_zero
 import pycompo.ellipse as pcellipse
-import pycompo.coord as pccoord
 
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
@@ -198,101 +196,6 @@ def add_ellipse_details(
         axis_minor_end_idx=(('feature', 'idx_component'), axis_minor_end_idx),
         )
     return feature_props
-
-
-# ------------------------------------------------------------------------------
-# Extract data around SST features
-# --------------------------------
-def get_featcen_data_cutouts(
-        dset: xr.Dataset,
-        feature_props: xr.Dataset,
-        search_RadRatio: float,
-        ) -> Tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
-    basic_coords = (dset['lat'], dset['lon'])
-
-    feature_data = cutout_feature_data(
-        dset, feature_props, search_RadRatio
-        )
-    dset['sst_feature'], feature_props = update_features(
-        dset['sst_feature'], feature_props, feature_data,
-        )
-    
-    feature_centric_data = pccoord.spherical2cartesian_featcen(
-        basic_coords, feature_data, feature_props,
-        )
-
-    feature_centric_data = pccoord.rota_featcen_cart_coords(
-        feature_centric_data, feature_props,
-        )
-    
-    return dset, feature_props, feature_centric_data
-
-
-def cutout_feature_data(
-        data: xr.Dataset,
-        feature_props: xr.Dataset,
-        search_RadRatio: float,
-        ) -> list[xr.Dataset]:
-    N_lat = data.sizes['lat']
-    N_lon = data.sizes['lon']
-
-    feature_data = []
-    for idx, feature_id in enumerate(feature_props['feature_id']):
-        feature = feature_props.isel(feature=idx)
-        data_sample = data.sel(time=feature['time'])
-
-        feature_data_bbox = _get_feature_data_bbox(feature, search_RadRatio)
-        if _is_lat_edge_bbox(feature_data_bbox, N_lat):
-            continue
-        
-        feature_data.append(
-            _cutout_feature_data(data_sample, feature_data_bbox, N_lon)
-            )
-    return feature_data
-
-
-def _get_feature_data_bbox(
-        feature: xr.Dataset,
-        search_RadRatio: float,
-        ) -> xr.DataArray:
-    R_maj = search_RadRatio/2 * feature['axis_major_length_idx']
-    feature_data_bbox = {
-        'lat_lower': round_away_from_zero(feature['centroid_idx'][0]-R_maj),
-        'lat_upper': round_away_from_zero(feature['centroid_idx'][0]+R_maj),
-        'lon_left':  round_away_from_zero(feature['centroid_idx'][1]-R_maj),
-        'lon_right': round_away_from_zero(feature['centroid_idx'][1]+R_maj),
-    }
-    return feature_data_bbox
-
-
-def _is_lat_edge_bbox(
-        feature_data_bbox: dict[str, int],
-        N_lat: int,
-        ) -> bool:
-    m1 = (feature_data_bbox['lat_lower'] >= 0)
-    m2 = (feature_data_bbox['lat_upper'] < N_lat)
-    return not (m1 and m2)
-
-
-def _cutout_feature_data(
-        data: xr.Dataset,
-        feature_data_bbox: dict[str, int],
-        N_lon: int,
-        ) -> xr.Dataset:
-    lat_lower = feature_data_bbox['lat_lower']
-    lat_upper = feature_data_bbox['lat_upper']
-    lon_left  = feature_data_bbox['lon_left']
-    lon_right = feature_data_bbox['lon_right']
-
-    lat_select_idxs = np.arange(lat_lower, lat_upper+1)    
-    if lon_right+1 >= N_lon:
-        lon_select_idxs = np.concatenate(
-            [np.arange(lon_left, N_lon), np.arange(0, (lon_right+1) - N_lon)]
-            )
-    else: 
-        lon_select_idxs = np.arange(lon_left, lon_right+1)
-
-    return data.isel(lat=lat_select_idxs, lon=lon_select_idxs)
 
 
 # ------------------------------------------------------------------------------

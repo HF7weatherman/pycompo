@@ -1,7 +1,7 @@
 import xarray as xr
 import math
 
-def build_circular_rolling_avg(
+def circ_roll_avg(
         dset: xr.DataArray | xr.Dataset,
         clim_avg_days: int | float,
         spd: int,
