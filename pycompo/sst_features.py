@@ -3,8 +3,6 @@ import xarray as xr
 from skimage.measure import regionprops
 from typing import Tuple
 
-import pycompo.ellipse as pcellipse
-
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.convection import convective_regions
 from pyorg.core.clusters import get_clusters, get_clusters_areas
@@ -26,7 +24,6 @@ def extract_sst_features(
     feature_props = xr.merge([
         feature_props, _get_feature_props_idx_space(feature_map, property_list)
         ])
-    feature_props = add_ellipse_details(feature_props)
     feature_map, feature_props = _remove_small_features(
         feature_map, feature_props, feature_min_area,
         )
@@ -136,12 +133,15 @@ def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
         first_val = values[0]
         array = np.array(values, dtype=float)
         if isinstance(first_val, tuple):
-            data_vars[f'{prop}_idx'] = (("feature", f"idx_component"), array)
+            data_vars[f'{prop}_idx'] = (("feature", "component"), array)
         else:
             data_vars[f'{prop}_idx'] = (("feature",), array)
 
     return xr.Dataset(
-        coords={'feature_id': ("feature", feature_props_dict['label'])},
+        coords={
+            'feature_id': ("feature", feature_props_dict['label']),
+            'component': ("component", ['lat', 'lon'])
+            },
         data_vars=data_vars
         ).drop('label_idx')
 
@@ -164,54 +164,25 @@ def _build_structure_element(connectivity: int=4) -> list:
 
 
 
-def add_ellipse_details(
-        feature_props: xr.Dataset,
-        ) -> xr.Dataset:
-    polar_angle_rad_idx = [
-        pcellipse.calc_polar_angle_rad(x)
-        for x in feature_props['orientation_idx'].values
-        ]
-    feature_props = feature_props.assign(
-        polar_angle_rad_idx=(('feature',), polar_angle_rad_idx),
-    )
-
-    # Calculate ellipse axes end points
-    axis_major_end_idx = [
-        pcellipse.calc_axis_major_end(length, angle)
-        for length, angle in zip(
-            feature_props['axis_major_length_idx'].values,
-            feature_props['polar_angle_rad_idx'].values
-            )
-    ]
-    axis_minor_end_idx = [
-        pcellipse.calc_axis_minor_end(length, angle)
-        for length, angle in zip(
-            feature_props['axis_minor_length_idx'].values,
-            feature_props['polar_angle_rad_idx'].values
-            )
-    ]
-
-    feature_props = feature_props.assign(
-        axis_major_end_idx=(('feature', 'idx_component'), axis_major_end_idx),
-        axis_minor_end_idx=(('feature', 'idx_component'), axis_minor_end_idx),
-        )
-    return feature_props
-
-
 # ------------------------------------------------------------------------------
 # Update generic feature information based on selected features
 # -------------------------------------------------------------
 def update_features(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
+        ellipse: dict,
         feature_data: list[xr.Dataset],
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
+        ) -> Tuple[xr.DataArray, xr.Dataset, dict]:
     keep_features = [int(data['feature_id'].values) for data in feature_data]
     feature_props = feature_props.where(
         feature_props['feature_id'].isin(keep_features), drop=True,
         )
+    for coords, data in ellipse.items():
+        ellipse[coords] = data.where(
+            data['feature_id'].isin(keep_features), drop=True,
+        )
     feature_map = _update_feature_map(feature_map, feature_props)
-    return feature_map, feature_props
+    return feature_map, feature_props, ellipse
 
 
 def _update_feature_map(

@@ -1,4 +1,5 @@
 import numpy as np
+import pycompo.ellipse
 import xarray as xr
 from typing import Tuple
 import matplotlib.pyplot as plt
@@ -203,12 +204,12 @@ def plot_feature_ellipse(
             )
     elif plot_coords == 'cartesian':
         polar_angle_rad = props['polar_angle_rad_idx'].values
-        end_coords = pccoord.get_ellipse_featcen_cart_coords(
+        end_coords = pycompo.ellipse._ellipse_idx2featcen_cart(
             props, coords_sphere,
             )
     elif plot_coords == 'rotated_cartesian':
         polar_angle_rad = 0.0
-        end_coords = pccoord.get_ellipse_rota_featcen_cart_coords(
+        end_coords = pycompo.ellipse._ellipse_featcen_cart2rota_featcen_cart(
             props, coords_sphere,
             )
     else:

@@ -13,6 +13,7 @@ from pycompo.utils import round_away_from_zero
 def get_featcen_data_cutouts(
         dset: xr.Dataset,
         feature_props: xr.Dataset,
+        ellipse: dict,
         search_RadRatio: float,
         ) -> Tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
     """
@@ -48,8 +49,8 @@ def get_featcen_data_cutouts(
         in rotated cartesian coordinates.
     """
     feature_data = cutout_feature_data(dset, feature_props, search_RadRatio)
-    dset['sst_feature'], feature_props = update_features(
-        dset['sst_feature'], feature_props, feature_data,
+    dset['sst_feature'], feature_props, ellipse = update_features(
+        dset['sst_feature'], feature_props, ellipse, feature_data,
         )
 
     feature_centric_data = pccoord.add_featcen_coords(

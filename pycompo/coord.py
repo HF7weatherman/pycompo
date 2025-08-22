@@ -4,6 +4,30 @@ import numpy as np
 
 KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 
+
+def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
+    coords_orig = dset[['lat', 'lon', 'cell_area']].drop_vars('height_2')
+    coords_orig = coords_orig.assign_coords(
+        {'component': ('component', ['lat', 'lon'])}
+        )
+    coords_orig['origin'] = xr.DataArray(
+        coords = {'component': (('component',), ['lat', 'lon'])},
+        data = [
+            coords_orig['lat'].isel(lat=0).values,
+            coords_orig['lon'].isel(lon=0).values,
+        ]
+    )
+    coords_orig['dsphere'] = (
+        'component',
+        np.array([
+            coords_orig['lat'].diff('lat').mean().values,
+            coords_orig['lon'].diff('lon').mean().values,
+            ]),
+        )
+
+    return coords_orig
+
+
 # ------------------------------------------------------------------------------
 # Coordinate system transformation
 # --------------------------------
@@ -31,8 +55,8 @@ def featcen_sphere_coords(
         centroid_idx: xr.Dataset,
         ) -> xr.Dataset:
     centroid_coords = _get_centroid_coords(coords_sphere, centroid_idx)
-    centroid_lat = centroid_coords[0]
-    centroid_lon = centroid_coords[1]
+    centroid_lat = centroid_coords.sel(component='lat').values
+    centroid_lon = centroid_coords.sel(component='lon').values
     
     if data['lon'][0] > data['lon'][-1]:
         data['lon'] = _adjust_lon_jump(data['lon'], centroid_lon)
@@ -68,6 +92,9 @@ def rota_featcen_cart_coords(
     return data
 
 
+# ------------------------------------------------------------------------------
+# Helper functions
+# ----------------
 def _calc_rota_featcen_cart_coords(
         x: xr.DataArray,
         y: xr.DataArray,
@@ -93,76 +120,6 @@ def _adjust_lon_jump(
 
 def _get_centroid_coords(
         coords_sphere: xr.Dataset,
-        centroid_idxs: xr.DataArray
-        ) -> Tuple[float, float]:
-    lat = coords_sphere['lat']
-    lon = coords_sphere['lon']
-    dlat = coords_sphere['dlat']
-    dlon = coords_sphere['dlon']
-
-    centroid_exact_lat = lat[0].values + dlat * centroid_idxs[0]
-    centroid_exact_lon = lon[0].values + dlon * centroid_idxs[1]
-
-    return (float(centroid_exact_lat.values), float(centroid_exact_lon.values))
-
-
-# ------------------------------------------------------------------------------
-# Get coordinates of ellipse in various coordinate systems
-# --------------------------------------------------------
-def get_ellipse_featcen_sphere_coords(
-        props: xr.Dataset,
-        coords_sphere: xr.Dataset,
-    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
-    dlat = coords_sphere['dlat']
-    dlon = coords_sphere['dlon']
-    maj_end_idx = props['axis_major_end_idx'].values
-    min_end_idx = props['axis_minor_end_idx'].values
-
-    maj_end_sphere = (maj_end_idx[0] * dlon, maj_end_idx[1] * dlat)
-    min_end_sphere = (min_end_idx[0] * dlon, min_end_idx[1] * dlat)
-    return (maj_end_sphere, min_end_sphere)
-
-
-def get_ellipse_featcen_cart_coords(
-        props: xr.Dataset,
-        coords_sphere: xr.Dataset,
-    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
-    dlat = coords_sphere['dlat']
-    dlon = coords_sphere['dlon']
-    maj_end_idx = props['axis_major_end_idx'].values
-    min_end_idx = props['axis_minor_end_idx'].values
-
-    centroid_lat, _ = _get_centroid_coords(coords_sphere, props['centroid_idx'])
-    dx = dlon * KM_PER_DEGREE_EQ * np.cos(np.deg2rad(centroid_lat + dlat))
-    dy = dlat * KM_PER_DEGREE_EQ
-
-    maj_end_cart = (maj_end_idx[0] * dx, maj_end_idx[1] * dy)
-    min_end_cart = (min_end_idx[0] * dx, min_end_idx[1] * dy)
-    return (maj_end_cart, min_end_cart)
-
-
-def get_ellipse_rota_featcen_cart_coords(
-        props: xr.Dataset,
-        coords_sphere: xr.Dataset,
-    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
-    maj_end_cart, min_end_cart = get_ellipse_featcen_cart_coords(
-        props, coords_sphere,
-        )
-
-    maj_end_rota_cart = _calc_rota_featcen_cart_coords(
-        maj_end_cart[0], maj_end_cart[1], props['polar_angle_rad_idx']
-        )
-    min_end_rota_cart = _calc_rota_featcen_cart_coords(
-        min_end_cart[0], min_end_cart[1], props['polar_angle_rad_idx']
-        )
-    return (maj_end_rota_cart, min_end_rota_cart)
-
-
-# ------------------------------------------------------------------------------
-# Helper functions
-# ----------------
-def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
-    coords_orig = dset[['lat', 'lon', 'cell_area']].drop_vars('height_2')
-    coords_orig['dlat'] = coords_orig['lat'].diff('lat').mean().values
-    coords_orig['dlon'] = coords_orig['lon'].diff('lon').mean().values
-    return coords_orig
+        centroid_idx: xr.DataArray
+        ) -> xr.DataArray:
+    return centroid_idx * coords_sphere['dsphere'] + coords_sphere['origin']
