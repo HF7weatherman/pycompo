@@ -175,9 +175,10 @@ def _ellipse_sphere2featcen_cart(
     centroid_cart = ellipse_sphere['centroid'] * 0.
     maj_end_cart = ellipse_sphere['maj_end'] * dcart
     min_end_cart = ellipse_sphere['min_end'] * dcart
-    polar_angle_rad_cart = np.arctan(
-        maj_end_cart.sel(component='lat') / maj_end_cart.sel(component='lon')
-        )
+#    polar_angle_rad_cart = np.arctan(
+#        maj_end_cart.sel(component='lat') / maj_end_cart.sel(component='lon')
+#        )
+    polar_angle_rad_cart = ellipse_sphere['polar_angle_rad']
     
     coords = ellipse_sphere.assign_coords(
         {'component': ('component', ['y', 'x'])}
