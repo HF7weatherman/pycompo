@@ -51,18 +51,17 @@ def plot_preprocessing_overview_map(
 
 
 def plot_coord_trafo(
-        dset: xr.Dataset,
-        props: xr.Dataset,
-        coords_sphere: xr.Dataset,
+        featcen_dset: list,
+        ellipse: dict,
+        winds: xr.Dataset,
+        feature_id: int,
         var: str,
         dT_thresh: float
         ) -> None:
-    # Get geophyiscal coordinate of feature centroid
-    centroid = pccoord._get_centroid_coords(
-        coords_sphere, props['centroid_idx'],
-        )
-    
     _, axs = plt.subplots(2, 2, figsize=(10, 8))
+
+    dset = featcen_dset[feature_id]
+    winds = winds.isel(feature=feature_id)
 
     # Plot data in regular geophysical coordinates
     pl0 = axs[0, 0].pcolormesh(
@@ -73,8 +72,15 @@ def plot_coord_trafo(
         dset['lon'], dset['lat'], dset[f'{var}_detrend_ano'],
         levels=[-dT_thresh, dT_thresh], colors='k',
         )
+    axs[0, 0].scatter(
+        ellipse['sphere']['centroid'].\
+            sel(component='lon').isel(feature=feature_id),
+        ellipse['sphere']['centroid'].\
+            sel(component='lat').isel(feature=feature_id),
+        color='k'
+        )
+    
     axs[0, 0].set_title('Regular geophysical coordinate')
-    axs[0, 0].scatter(centroid[1], centroid[0], color='k')
     axs[0, 0].set_xlabel('Longitude / $^{\circ}\,$E')
     axs[0, 0].set_ylabel('Latitude / $^{\circ}\,$N')
     plt.colorbar(
@@ -91,7 +97,13 @@ def plot_coord_trafo(
         dset['featcen_lon'], dset['featcen_lat'], dset[f'{var}_detrend_ano'],
         levels=[-dT_thresh, dT_thresh], colors='k',
         )
-    axs[0, 1].scatter(0, 0, color='k')
+    axs[0, 1].scatter(
+        ellipse['featcen_sphere']['centroid'].\
+            sel(component='lon').isel(feature=feature_id),
+        ellipse['featcen_sphere']['centroid'].\
+            sel(component='lat').isel(feature=feature_id),
+        color='k'
+        )
 
     axs[0, 1].set_title('Feature-centric geophysical coordinate')
     axs[0, 1].set_xlabel('Feature-centric longitude / $^{\circ}\,$E')
@@ -110,7 +122,13 @@ def plot_coord_trafo(
         dset['featcen_x'], dset['featcen_y'], dset[f'{var}_detrend_ano'],
         levels=[-dT_thresh, dT_thresh], colors='k',
         )
-    axs[1, 0].scatter(0, 0, color='k')
+    axs[1, 0].scatter(
+        ellipse['featcen_cart']['centroid'].\
+            sel(component='x').isel(feature=feature_id),
+        ellipse['featcen_cart']['centroid'].\
+            sel(component='y').isel(feature=feature_id),
+        color='k'
+        )
 
     axs[1, 0].set_title('Feature-centric Cartesian coordinate')
     axs[1, 0].set_xlabel('Feature-centric distance / km')
@@ -120,7 +138,7 @@ def plot_coord_trafo(
         label=f'{var}_detrend_ano / K',
         )
     
-    # Plot data in rotaed feature-centric Cartesian coordinates
+    # Plot data in rotated feature-centric Cartesian coordinates
     pl1 = axs[1, 1].pcolormesh(
         dset['rota_featcen_x'], dset['rota_featcen_y'],
         dset[f'{var}_detrend_ano'],
@@ -131,7 +149,13 @@ def plot_coord_trafo(
         dset[f'{var}_detrend_ano'],
         levels=[-dT_thresh, dT_thresh], colors='k',
         )
-    axs[1, 1].scatter(0, 0, color='k')
+    axs[1, 1].scatter(
+        ellipse['rota_featcen_cart']['centroid'].\
+            sel(component='x').isel(feature=feature_id),
+        ellipse['rota_featcen_cart']['centroid'].\
+            sel(component='y').isel(feature=feature_id),
+        color='k'
+        )
 
     axs[1, 1].set_title('Rotated feature-centric Cartesian coordinate')
     axs[1, 1].set_xlabel('Feature-centric distance / km')
@@ -164,73 +188,58 @@ def plot_coord_trafo(
     axs[1, 1].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
     
     # Plot ellipse features
-    plot_feature_ellipse(axs[0, 1], props, coords_sphere, 'spherical')
-    plot_feature_ellipse(axs[1, 0], props, coords_sphere, 'cartesian')
-    plot_feature_ellipse(axs[1, 1], props, coords_sphere, 'rotated_cartesian')
+    _plot_feature_ellipse(
+        axs[0, 1], ellipse['featcen_sphere'].isel(feature=feature_id)
+        )
+    _plot_feature_ellipse(
+        axs[1, 0], ellipse['featcen_cart'].isel(feature=feature_id)
+        )
+    _plot_feature_ellipse(
+        axs[1, 1], ellipse['rota_featcen_cart'].isel(feature=feature_id)
+        )
     
     # Plot wind features
     axs[0, 0].quiver(
-        centroid[1], centroid[0], props['bg_uas'], props['bg_vas'], scale=50
+        ellipse['sphere']['centroid'].sel(component='lon').isel(feature=feature_id),
+        ellipse['sphere']['centroid'].sel(component='lat').isel(feature=feature_id),
+        winds['bg_uas'], winds['bg_vas'], scale=50,
         )
-    axs[0, 1].quiver(0, 0, props['bg_uas'], props['bg_vas'], scale=50)
-    axs[1, 0].quiver(0, 0, props['bg_uas'], props['bg_vas'], scale=50)
+    axs[0, 1].quiver(0, 0, winds['bg_uas'], winds['bg_vas'], scale=50)
+    axs[1, 0].quiver(0, 0, winds['bg_uas'], winds['bg_vas'], scale=50)
     
-    uas_bg_rotated, vas_bg_rotated = \
-        pccoord._calc_rota_featcen_cart_coords(
-            props['bg_uas'], props['bg_vas'], props['polar_angle_rad_idx'],
-            )
-    axs[1, 1].quiver(
-        np.array([0]), np.array([0]), uas_bg_rotated, vas_bg_rotated,
-        scale=50,
+    uas_rota, vas_rota = pccoord._calc_rota_featcen_cart_coords(
+        winds['bg_uas'], winds['bg_vas'],
+        ellipse['featcen_cart']['polar_angle_rad'].isel(feature=feature_id),
         )
+    axs[1, 1].quiver(np.array([0]), np.array([0]), uas_rota, vas_rota, scale=50)
 
     plt.tight_layout()
     for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')
     plt.show()
-    
-    
-def plot_feature_ellipse(
-        axis: Axes,
-        props: xr.Dataset,
-        coords_sphere: xr.Dataset,
-        plot_coords: str,
-        ) -> None:
-    
-    print(coords_sphere['dlat'])
-    if plot_coords == 'spherical':
-        polar_angle_rad = props['polar_angle_rad_idx'].values
-        end_coords = pccoord.get_ellipse_featcen_sphere_coords(
-            props, coords_sphere,
-            )
-    elif plot_coords == 'cartesian':
-        polar_angle_rad = props['polar_angle_rad_idx'].values
-        end_coords = pycompo.ellipse._ellipse_idx2featcen_cart(
-            props, coords_sphere,
-            )
-    elif plot_coords == 'rotated_cartesian':
-        polar_angle_rad = 0.0
-        end_coords = pycompo.ellipse._ellipse_featcen_cart2rota_featcen_cart(
-            props, coords_sphere,
-            )
-    else:
-        raise ValueError("Invalid plot coordinates specified!")
-    
-    _plot_feature_ellipse(axis, polar_angle_rad, end_coords[0], end_coords[1])
 
 
 def _plot_feature_ellipse(
         axis: Axes,
-        polar_angle_rad: float,
-        major_end: Tuple[float, float],
-        minor_end: Tuple[float, float]):
-    ellipse = Ellipse(
+        ellipse: xr.Dataset
+        ) -> None:
+    maj_end = ellipse['maj_end']
+    min_end = ellipse['min_end']
+    polar_angle_rad = ellipse['polar_angle_rad']
+
+    ellipse_patch = Ellipse(
         xy=(0, 0),
-        width=np.sqrt((2 * major_end[0]) ** 2 + (2 * major_end[1]) ** 2),
-        height=np.sqrt((2 * minor_end[0]) ** 2 + (2 * minor_end[1]) ** 2),
+        width=np.sqrt((2 * maj_end[0]) ** 2 + (2 * maj_end[1]) ** 2),
+        height=np.sqrt((2 * min_end[0]) ** 2 + (2 * min_end[1]) ** 2),
         angle=np.rad2deg(polar_angle_rad),
-        edgecolor='green', facecolor='none', lw=1, ls='-.'
+        edgecolor='green', facecolor='none', lw=1, ls='-.',
     )
-    axis.add_patch(ellipse)
+    axis.add_patch(ellipse_patch)
     
-    axis.plot([-major_end[0], major_end[0]], [-major_end[1], major_end[1]])
-    axis.plot([-minor_end[0], minor_end[0]], [-minor_end[1], minor_end[1]])
+    axis.plot(
+        [-maj_end.isel(component=1), maj_end.isel(component=1)],
+        [-maj_end.isel(component=0), maj_end.isel(component=0)],
+        )
+    axis.plot(
+        [-min_end.isel(component=1), min_end.isel(component=1)],
+        [-min_end.isel(component=0), min_end.isel(component=0)],
+        )

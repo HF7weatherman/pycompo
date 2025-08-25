@@ -35,15 +35,17 @@ def add_featcen_coords(
         coords_sphere: xr.Dataset,
         feature_data_in: list[xr.Dataset],
         feature_props: xr.Dataset,
+        feature_ellipse: dict,
         ) -> list[xr.Dataset]:
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         data = feature_data_in[idx]
         props = feature_props.isel(feature=idx)
+        ellipse = feature_ellipse['featcen_cart'].isel(feature=idx)
 
         data = featcen_sphere_coords(coords_sphere, data, props['centroid_idx'])
         data = featcen_cart_coords(data)
-        data = rota_featcen_cart_coords(data, props['polar_angle_rad_idx'])
+        data = rota_featcen_cart_coords(data, ellipse['polar_angle_rad'])
         feature_data_out.append(data)
 
     return feature_data_out

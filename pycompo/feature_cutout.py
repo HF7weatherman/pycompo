@@ -54,7 +54,7 @@ def get_featcen_data_cutouts(
         )
 
     feature_centric_data = pccoord.add_featcen_coords(
-        pccoord.get_coords_orig(dset), feature_data, feature_props,
+        pccoord.get_coords_orig(dset), feature_data, feature_props, ellipse,
         )
 
     return dset, feature_props, feature_centric_data
