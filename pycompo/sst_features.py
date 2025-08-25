@@ -170,19 +170,14 @@ def _build_structure_element(connectivity: int=4) -> list:
 def update_features(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
-        ellipse: dict,
         feature_data: list[xr.Dataset],
-        ) -> Tuple[xr.DataArray, xr.Dataset, dict]:
+        ) -> Tuple[xr.DataArray, xr.Dataset]:
     keep_features = [int(data['feature_id'].values) for data in feature_data]
     feature_props = feature_props.where(
         feature_props['feature_id'].isin(keep_features), drop=True,
         )
-    for coords, data in ellipse.items():
-        ellipse[coords] = data.where(
-            data['feature_id'].isin(keep_features), drop=True,
-        )
     feature_map = _update_feature_map(feature_map, feature_props)
-    return feature_map, feature_props, ellipse
+    return feature_map, feature_props
 
 
 def _update_feature_map(
