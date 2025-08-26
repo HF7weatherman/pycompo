@@ -58,7 +58,7 @@ def plot_coord_trafo(
         var: str,
         dT_thresh: float
         ) -> None:
-    _, axs = plt.subplots(2, 2, figsize=(10, 8))
+    _, axs = plt.subplots(3, 2, figsize=(10, 12))
 
     dset = featcen_dset[feature_id]
     winds = winds.isel(feature=feature_id)
@@ -164,6 +164,27 @@ def plot_coord_trafo(
         pl1, ax=axs[1, 1], orientation='vertical', extend='both',
         label=f'{var}_detrend_ano / K',
         )
+    
+    # Plot data in normalized rotated feature-centric Cartesian coordinates
+    pl1 = axs[2, 0].pcolormesh(
+        dset['En_rota_featcen_x'], dset['En_rota_featcen_y'],
+        dset[f'{var}_detrend_ano'],
+        cmap='RdBu_r', shading='auto'
+        )
+    axs[2, 0].contour(
+        dset['En_rota_featcen_x'], dset['En_rota_featcen_y'],
+        dset[f'{var}_detrend_ano'],
+        levels=[-dT_thresh, dT_thresh], colors='k',
+        )
+    axs[2, 0].scatter([0], [0], color='k')
+
+    axs[2, 0].set_title('Norm. rotated feature-centric Cartesian coordinate')
+    axs[2, 0].set_xlabel('Fractional distance')
+    axs[2, 0].set_ylabel('Fractional distance')
+    plt.colorbar(
+        pl1, ax=axs[2, 0], orientation='vertical', extend='both',
+        label=f'{var}_detrend_ano / K',
+        )
 
     # Plot grid lines
     ymin = dset['featcen_lat'].min()
@@ -186,6 +207,13 @@ def plot_coord_trafo(
     xmax = dset['rota_featcen_x'].max()
     axs[1, 1].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
     axs[1, 1].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
+
+    ymin = dset['En_rota_featcen_y'].min()
+    ymax = dset['En_rota_featcen_y'].max()
+    xmin = dset['En_rota_featcen_x'].min()
+    xmax = dset['En_rota_featcen_x'].max()
+    axs[2, 0].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
+    axs[2, 0].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
     
     # Plot ellipse features
     _plot_feature_ellipse(
@@ -197,6 +225,8 @@ def plot_coord_trafo(
     _plot_feature_ellipse(
         axs[1, 1], ellipse['rota_featcen_cart'].isel(feature=feature_id)
         )
+    circle = plt.Circle([0, 0], 1, fill=False, color='green', ls='-.')
+    axs[2, 0].add_patch(circle)
     
     # Plot wind features
     axs[0, 0].quiver(
@@ -212,6 +242,10 @@ def plot_coord_trafo(
         ellipse['featcen_cart']['polar_angle_rad'].isel(feature=feature_id),
         )
     axs[1, 1].quiver(np.array([0]), np.array([0]), uas_rota, vas_rota, scale=50)
+    axs[2, 0].quiver(np.array([0]), np.array([0]), uas_rota, vas_rota, scale=50)
+
+    axs[2, 0].set_xlim([-2.5, 2.5])
+    axs[2, 0].set_ylim([-2.5, 2.5])
 
     plt.tight_layout()
     for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')

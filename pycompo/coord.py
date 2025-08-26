@@ -41,11 +41,13 @@ def add_featcen_coords(
     for idx, _ in enumerate(feature_props['feature_id']):
         data = feature_data_in[idx]
         props = feature_props.isel(feature=idx)
-        ellipse = feature_ellipse['featcen_cart'].isel(feature=idx)
+        ellipse_cart = feature_ellipse['featcen_cart'].isel(feature=idx)
+        ellipse_rota_cart = feature_ellipse['rota_featcen_cart'].isel(feature=idx)
 
         data = featcen_sphere_coords(coords_sphere, data, props['centroid_idx'])
         data = featcen_cart_coords(data)
-        data = rota_featcen_cart_coords(data, ellipse['polar_angle_rad'])
+        data = rota_featcen_cart_coords(data, ellipse_cart['polar_angle_rad'])
+        data = ellipse_norm_rota_featcen_cart_coords(data, ellipse_rota_cart)
         feature_data_out.append(data)
 
     return feature_data_out
@@ -94,6 +96,34 @@ def rota_featcen_cart_coords(
     return data
 
 
+def ellipse_norm_rota_featcen_cart_coords(
+        data: xr.Dataset,
+        ellipse: xr.Dataset,
+        ) -> xr.Dataset:
+    len_maj = _ax_cart_endpoints2length(ellipse['maj_end'])
+    len_min = _ax_cart_endpoints2length(ellipse['min_end'])
+
+    R_featcen_cart = np.sqrt(
+        data['rota_featcen_x']**2 + data['rota_featcen_y']**2
+        )
+    tan_featcen_cart = np.tan(data['rota_featcen_y'] / data['rota_featcen_x'])
+
+    # Determine the boundary point ('bp'), where teh ellipse intersects the ray
+    #   towards point (x, y)
+    xbp = (len_maj * len_min) / \
+        np.sqrt(len_min**2 + len_maj**2 * tan_featcen_cart**2)
+    ybp = xbp * tan_featcen_cart
+    Rbp = np.sqrt(xbp**2 + ybp**2)
+
+    # Compute normalized radius ('Rn')
+    Rn = R_featcen_cart / Rbp
+    thp = np.arctan2(data['rota_featcen_y'], data['rota_featcen_x'])
+    data['En_rota_featcen_x'] = Rn * np.cos(thp)
+    data['En_rota_featcen_y'] = Rn * np.sin(thp)
+
+    return data
+
+
 # ------------------------------------------------------------------------------
 # Helper functions
 # ----------------
@@ -125,3 +155,9 @@ def _get_centroid_coords(
         centroid_idx: xr.DataArray
         ) -> xr.DataArray:
     return centroid_idx * coords_sphere['dsphere'] + coords_sphere['origin']
+
+
+def _ax_cart_endpoints2length(endpoints: xr.DataArray) -> np.ndarray:
+    return np.sqrt(
+        endpoints.sel(component='x')**2 + endpoints.sel(component='y')**2
+        )
