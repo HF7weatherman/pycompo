@@ -2,8 +2,6 @@ import numpy as np
 import xarray as xr
 from typing import Tuple
 
-import pycompo.coord as pccoord
-from pycompo.sst_features import update_features
 from pycompo.utils import round_away_from_zero
 
 
@@ -48,10 +46,9 @@ def get_featcen_data_cutouts(
         in rotated cartesian coordinates.
     """
     feature_data = cutout_feature_data(dset, feature_props, search_RadRatio)
-    dset['sst_feature'], feature_props = update_features(
+    dset['sst_feature'], feature_props = _update_features(
         dset['sst_feature'], feature_props, feature_data,
         )
-
     return dset, feature_props, feature_data
 
 
@@ -222,3 +219,28 @@ def _is_lat_edge_bbox(
     m1 = (feature_data_bbox['lat_lower'] >= 0)
     m2 = (feature_data_bbox['lat_upper'] < N_lat)
     return not (m1 and m2)
+
+
+# ------------------------------------------------------------------------------
+# Update generic feature information based on selected features
+# -------------------------------------------------------------
+def _update_features(
+        feature_map: xr.DataArray,
+        feature_props: xr.Dataset,
+        feature_data: list[xr.Dataset],
+        ) -> Tuple[xr.DataArray, xr.Dataset]:
+    keep_features = [int(data['feature_id'].values) for data in feature_data]
+    feature_props = feature_props.where(
+        feature_props['feature_id'].isin(keep_features), drop=True,
+        )
+    feature_map = _update_feature_map(feature_map, feature_props)
+    return feature_map, feature_props
+
+
+def _update_feature_map(
+    feature_map: xr.DataArray,
+    feature_props: xr.Dataset,
+    ) -> xr.DataArray:
+    return feature_map.where(
+        feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
+        )

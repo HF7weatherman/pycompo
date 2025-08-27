@@ -189,29 +189,3 @@ def _build_structure_element(connectivity: int=4) -> list:
                              [1, 1, 1],
                              [1, 1, 1]]
     return structure_element
-
-
-
-# ------------------------------------------------------------------------------
-# Update generic feature information based on selected features
-# -------------------------------------------------------------
-def update_features(
-        feature_map: xr.DataArray,
-        feature_props: xr.Dataset,
-        feature_data: list[xr.Dataset],
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
-    keep_features = [int(data['feature_id'].values) for data in feature_data]
-    feature_props = feature_props.where(
-        feature_props['feature_id'].isin(keep_features), drop=True,
-        )
-    feature_map = _update_feature_map(feature_map, feature_props)
-    return feature_map, feature_props
-
-
-def _update_feature_map(
-    feature_map: xr.DataArray,
-    feature_props: xr.Dataset,
-    ) -> xr.DataArray:
-    return feature_map.where(
-        feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
-        )
