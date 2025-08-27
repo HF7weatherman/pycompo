@@ -48,6 +48,9 @@ def add_featcen_coords(
         data = featcen_cart_coords(data)
         data = rota_featcen_cart_coords(data, ellipse_cart['polar_angle_rad'])
         data = ellipse_norm_rota_featcen_cart_coords(data, ellipse_rota_cart)
+        data = ellipse_norm_rota2_featcen_cart_coords(
+            data, props[['bg_uas', 'bg_vas']], ellipse_cart['polar_angle_rad'],
+            )
         feature_data_out.append(data)
 
     return feature_data_out
@@ -121,6 +124,22 @@ def ellipse_norm_rota_featcen_cart_coords(
     data['En_rota_featcen_x'] = Rn * np.cos(thp)
     data['En_rota_featcen_y'] = Rn * np.sin(thp)
 
+    return data
+
+
+def ellipse_norm_rota2_featcen_cart_coords(
+        data: xr.Dataset,
+        winds: xr.Dataset,
+        polar_angle_rad: xr.DataArray,
+        ) -> list[xr.Dataset]:
+    wind_angle_rad = np.arctan2(winds['bg_vas'], winds['bg_uas'])
+    rot_angle_rad = wind_angle_rad - polar_angle_rad
+    
+    data['En_rota2_featcen_x'], data['En_rota2_featcen_y'] = \
+        _calc_rota_featcen_cart_coords(
+            data['En_rota_featcen_x'], data['En_rota_featcen_y'],
+            rot_angle_rad,
+            )
     return data
 
 

@@ -6,7 +6,7 @@ from typing import Tuple
 def calc_feature_bg_wind(
         feature_props: xr.Dataset,
         feature_centric_data: list[xr.Dataset],
-        wind_vars: Tuple[str],
+        wind_vars: Tuple[str, str],
         ) -> xr.Dataset:
     # Calculate mean wind components for cutout region
     for var in wind_vars:
