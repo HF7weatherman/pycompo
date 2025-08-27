@@ -18,12 +18,19 @@ def extract_sst_features(
         property_list: list[str],
         feature_min_area: float=0.,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
-    feature_map, feature_props = _get_sst_features(
+    feature_map, basic_feature_props = _get_sst_features(
         sst_dset, threshold=threshold, connectivity=connectivity
         )
-    feature_props = xr.merge([
-        feature_props, _get_feature_props_idx_space(feature_map, property_list)
-        ])
+    advanced_feature_props = _get_feature_props_idx_space(
+        feature_map, property_list,
+        )
+    feature_props = xr.merge([basic_feature_props, advanced_feature_props])
+    feature_props = feature_props.assign({
+        'ts_detrend_ano_mean': _area_weighted_feature_mean(
+            feature_map, sst_dset, feature_props,
+            )
+        })
+    
     feature_map, feature_props = _remove_small_features(
         feature_map, feature_props, feature_min_area,
         )
@@ -111,6 +118,27 @@ def _get_feature_props_idx_space(
         }
     
     return _transform_feature_props_idx_space_to_xrarray(feature_props_dict)
+
+
+def _area_weighted_feature_mean(
+        label_image: xr.DataArray,
+        intensity_image: xr.DataArray,
+        feature_props: xr.Dataset,
+        ):
+    cell_area_km2 = get_cells_area(intensity_image)/1000**2
+
+    feature_mean = []
+    for i, feature_id in enumerate(feature_props['feature_id']):
+        feature = xr.where(label_image == feature_id, 1, 0)
+        feature_area = feature_props['area_km2'].isel(feature=i)
+        area_weight = feature * cell_area_km2/feature_area
+        feature_mean.append(np.sum(area_weight * intensity_image).values)
+
+    return xr.DataArray(
+        data=np.array(feature_mean),
+        dims=('feature',),
+        coords={'feature_id': ('feature', feature_props['feature_id'].values)}
+        )
 
 
 def _remove_small_features(
