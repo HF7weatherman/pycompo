@@ -2,8 +2,9 @@ import numpy as np
 import xarray as xr
 from typing import Tuple
 
-from pycompo.coord import _calc_rota_featcen_cart_coords, _get_centroid_coords
-from pycompo.coord import KM_PER_DEGREE_EQ
+from pycompo.core.coord import _calc_rota_featcen_cart_coords
+from pycompo.core.coord import _get_centroid_coords
+from pycompo.core.coord import KM_PER_DEGREE_EQ
 
 
 def get_ellipse_params(

@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import yaml
 import xarray as xr
 
@@ -7,6 +8,11 @@ def read_yaml_config(file_path: str) -> dict:
     with open(file_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
+
+
+def np_datetime2file_datestr(time_np64: np.datetime64) -> str:
+    format = '%Y%m%dT%H%M%SZ'
+    return time_np64.astype('datetime64[us]').astype('O').strftime(format)
 
 
 def circ_roll_avg(

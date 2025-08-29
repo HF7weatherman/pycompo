@@ -7,6 +7,7 @@ def calc_feature_bg_wind(
         feature_props: xr.Dataset,
         feature_centric_data: list[xr.Dataset],
         wind_vars: Tuple[str, str],
+        calc_sfcwind: bool=False,
         ) -> xr.Dataset:
     # Calculate mean wind components for cutout region
     for var in wind_vars:
@@ -16,13 +17,16 @@ def calc_feature_bg_wind(
             ]
         feature_props[f'bg_{var}'] = ('feature', bg_wind_component)
 
-    # Calculate sfcwind speed and direction
-    feature_props['bg_sfcwind'] = _calc_sfcwind_speed(
-        feature_props[f'bg_{wind_vars[0]}'], feature_props[f'bg_{wind_vars[1]}']
-    )
-    feature_props['bg_sfcwind_dir'] = _calc_sfcwind_dir(
-        feature_props[f'bg_{wind_vars[0]}'], feature_props[f'bg_{wind_vars[1]}']
-    )
+    if calc_sfcwind:
+        # Calculate sfcwind speed and direction
+        feature_props['bg_sfcwind'] = _calc_sfcwind_speed(
+            feature_props[f'bg_{wind_vars[0]}'],
+            feature_props[f'bg_{wind_vars[1]}'],
+        )
+        feature_props['bg_sfcwind_dir'] = _calc_sfcwind_dir(
+            feature_props[f'bg_{wind_vars[0]}'],
+            feature_props[f'bg_{wind_vars[1]}'],
+        )
     return feature_props
 
     

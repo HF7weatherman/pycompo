@@ -2,8 +2,8 @@ import numpy as np
 import xarray as xr
 from typing import Tuple
 
-from pycompo.sst_features import _update_features
-from pycompo.utils import round_away_from_zero
+from pycompo.core.sst_features import _update_features
+from pycompo.core.utils import round_away_from_zero
 
 
 # ------------------------------------------------------------------------------
@@ -12,6 +12,7 @@ from pycompo.utils import round_away_from_zero
 def get_featcen_data_cutouts(
         dset: xr.Dataset,
         feature_props: xr.Dataset,
+        feature_var: str,
         search_RadRatio: float,
         ) -> Tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
     """
@@ -47,8 +48,8 @@ def get_featcen_data_cutouts(
         in rotated cartesian coordinates.
     """
     feature_data = cutout_feature_data(dset, feature_props, search_RadRatio)
-    dset['sst_feature'], feature_props = _update_features(
-        dset['sst_feature'], feature_props, feature_data,
+    dset[f"{feature_var}_feature"], feature_props = _update_features(
+        dset[f"{feature_var}_feature"], feature_props, feature_data,
         )
     return dset, feature_props, feature_data
 

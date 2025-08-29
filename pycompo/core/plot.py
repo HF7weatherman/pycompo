@@ -5,7 +5,7 @@ from typing import Tuple
 from matplotlib.patches import Ellipse
 from matplotlib.axes import Axes
 
-import pycompo.coord as pccoord
+import pycompo.core.coord as pccoord
 
 COMPO_PLOT_RANGE = {
     'ts_ano': [-0.3, 0.3],
