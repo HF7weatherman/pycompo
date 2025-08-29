@@ -126,8 +126,8 @@ def get_gaussian_filter_bg_ano(
 def gaussian_lowpass_filter(
         dset: xr.DataArray,
         lat_mid: float,
-        Lc_km: float,
-        truncate: float, 
+        cutoff_scale_km: float,
+        truncation: float, 
         ) -> Tuple[list, np.ndarray]:
     """
     Applies a Gaussian lowpass filter to the input DataArray.
@@ -169,7 +169,7 @@ def gaussian_lowpass_filter(
     dlon = dset['lon'].diff('lon').mean().values
 
     # Define cutoff wavenumber (in radians per degree)
-    Lc_deg_lat, Lc_deg_lon = _Lc_km2deg(Lc_km, lat_mid)  # degrees
+    Lc_deg_lat, Lc_deg_lon = _Lc_km2deg(cutoff_scale_km, lat_mid)  # degrees
     kc_deg_lat = 2 * np.pi / Lc_deg_lat  # radians per degree
     kc_deg_lon = 2 * np.pi / Lc_deg_lon  # radians per degree
 
@@ -180,7 +180,7 @@ def gaussian_lowpass_filter(
     while len(sigmas) < n_dims: sigmas.append(0)
 
     return list(dset.dims), gaussian_filter(
-        dset, sigma=sigmas, truncate=truncate
+        dset, sigma=sigmas, truncate=truncation
         )
 
 

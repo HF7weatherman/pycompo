@@ -15,11 +15,11 @@ def extract_sst_features(
         sst_dset: xr.DataArray,
         threshold: float,
         connectivity: int,
+        min_area: float,
         property_list: list[str],
-        feature_min_area: float=0.,
         ) -> Tuple[xr.DataArray, xr.Dataset]:
     feature_map, basic_feature_props = _get_sst_features(
-        sst_dset, threshold=threshold, connectivity=connectivity
+        sst_dset, threshold=threshold, connectivity=connectivity,
         )
     advanced_feature_props = _get_feature_props_idx_space(
         feature_map, property_list,
@@ -30,9 +30,8 @@ def extract_sst_features(
             feature_map, sst_dset, feature_props,
             )
         })
-    
     feature_map, feature_props = _remove_small_features(
-        feature_map, feature_props, feature_min_area,
+        feature_map, feature_props, min_area,
         )
     return feature_map, feature_props
 

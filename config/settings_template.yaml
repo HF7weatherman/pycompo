@@ -1,0 +1,69 @@
+exp: ngc5004
+pycompo_name: pc01
+
+# Basic Data Settings
+data:
+  feature_var: ts
+  wind_vars:
+    - uas
+    - vas
+  study_vars:
+    - pr
+    - prw
+    - hfls
+    - hfss
+  spd: 8
+  inpaths:
+    ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/ts_latlon/
+    uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/uas_latlon/
+    vas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/vas_latlon/
+    pr: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/pr_latlon/
+    prw: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/prw_latlon/
+    hfls: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/hfls_latlon/
+    hfss: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/hfss_latlon/
+
+# Basic Analysis Settings
+lat_range:
+  - -15.0
+  - 15.0
+
+# Detrending Settings
+detrend:
+  switch: False
+  clim_baseyear: 2020
+  clim_avg_days: 30
+
+# Filtering settings
+filter:
+  lat_mid: 0.0
+  cutoff_scale_km: 300.0
+  truncation: 1
+
+# SST-Feature Detection Settings
+feature:
+  threshold: 0.2
+  connectivity: 8
+  min_area: 2500.0
+  property_list:
+    - centroid
+    - area
+    - axis_major_length
+    - axis_minor_length
+    - orientation
+
+# Data Cutout Sample Settings
+cutout:
+  search_RadRatio: 3.0
+
+# Composite Settings
+composite:
+  anomaly_modes:
+    - warm
+  compo_x:
+    - -2.5
+    - 2.6
+    - 0.1
+  compo_y:
+    - -2.5
+    - 2.6
+    - 0.1

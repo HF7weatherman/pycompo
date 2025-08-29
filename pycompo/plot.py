@@ -29,29 +29,30 @@ CLABEL = {
 def plot_preprocessing_overview_map(
         dset: xr.Dataset,
         var: str,
-        dT_thresh: float,
-        ano_range: Tuple[float, float],
-        ano_cmap: str,
+        threshold: float,
         ) -> None:
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+    _, axs = plt.subplots(2, 2, figsize=(10, 8))
+
+    ano_range = (-3 * threshold, 3 * threshold)
+    ano_cmap = 'RdBu_r'
 
     # filled contour plots
     dset['ts'].plot(ax=axs[0, 0]) # type: ignore
     axs[0, 0].set_title('Original SST')
 
-    dset[f'{var}_detrend'].plot(
+    dset[f'{var}'].plot(
         ax=axs[0, 1], vmin=ano_range[0], vmax=ano_range[1], cmap=ano_cmap,
         extend='both',
         ) # type: ignore
     axs[0, 1].set_title('Detrended SST')
 
-    dset[f'{var}_detrend_bg'].plot(
+    dset[f'{var}_bg'].plot(
         ax=axs[1, 0], vmin=ano_range[0], vmax=ano_range[1], cmap=ano_cmap,
         extend='both',
         ) # type: ignore
     axs[1, 0].set_title('Detrended SST background (Lowpass)')
 
-    dset[f'{var}_detrend_ano'].plot(
+    dset[f'{var}_ano'].plot(
         ax=axs[1, 1], vmin=ano_range[0], vmax=ano_range[1], cmap=ano_cmap,
         extend='both',
         ) # type: ignore
@@ -60,8 +61,8 @@ def plot_preprocessing_overview_map(
     # overlay contour lines for anomalies
     for i in range(0, 4):
         axs.ravel()[i].contour(
-            dset['lon'], dset['lat'], dset[f'{var}_detrend_ano'],
-            levels=[dT_thresh], colors='k',
+            dset['lon'], dset['lat'], dset[f'{var}_ano'],
+            levels=[threshold], colors='k',
             )
 
     plt.tight_layout()
