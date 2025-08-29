@@ -7,6 +7,25 @@ from matplotlib.axes import Axes
 
 import pycompo.coord as pccoord
 
+COMPO_PLOT_RANGE = {
+    'ts_ano': [-0.3, 0.3],
+    'pr_ano': [-3, 3],
+    'hfls_ano': [-6, 6],
+    'hfss_ano': [-1.5, 1.5],
+    'prw_ano': [-0.4, 0.4],
+    'sfcwind_ano': [-0.15, 0.15],
+}
+
+CLABEL = {
+    'ts_ano': "ts_ano / K",
+    'pr_ano': "pr_ano / mm day-1",
+    'hfls_ano': "hfls_ano / W m-2",
+    'hfss_ano': "hfss_ano / W m-2",
+    'prw_ano': "prw_ano / mm",
+    'sfcwind_ano': "sfcwind_ano / m s-1",
+}
+
+
 def plot_preprocessing_overview_map(
         dset: xr.Dataset,
         var: str,
@@ -186,42 +205,13 @@ def plot_coord_trafo(
         )
 
     # Plot grid lines
-    ymin = dset['featcen_lat'].min()
-    ymax = dset['featcen_lat'].max()
-    xmin = dset['featcen_lon'].min()
-    xmax = dset['featcen_lon'].max()
-    axs[0, 1].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
-    axs[0, 1].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
-
-    ymin = dset['featcen_y'].min()
-    ymax = dset['featcen_y'].max()
-    xmin = dset['featcen_x'].min()
-    xmax = dset['featcen_x'].max()
-    axs[1, 0].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
-    axs[1, 0].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
-
-    ymin = dset['rota_featcen_y'].min()
-    ymax = dset['rota_featcen_y'].max()
-    xmin = dset['rota_featcen_x'].min()
-    xmax = dset['rota_featcen_x'].max()
-    axs[1, 1].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
-    axs[1, 1].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
-
-    ymin = dset['En_rota_featcen_y'].min()
-    ymax = dset['En_rota_featcen_y'].max()
-    xmin = dset['En_rota_featcen_x'].min()
-    xmax = dset['En_rota_featcen_x'].max()
-    axs[2, 0].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
-    axs[2, 0].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
-
-    ymin = dset['En_rota2_featcen_y'].min()
-    ymax = dset['En_rota2_featcen_y'].max()
-    xmin = dset['En_rota2_featcen_x'].min()
-    xmax = dset['En_rota2_featcen_x'].max()
-    axs[2, 1].vlines(x=0, ymin=ymin, ymax=ymax, lw=0.8, ls='--', color='gray')
-    axs[2, 1].hlines(y=0, xmin=xmin, xmax=xmax, lw=0.8, ls='--', color='gray')
+    _add_grid(axs[0, 1], dset['featcen_lon'], dset['featcen_lat'])
+    _add_grid(axs[1, 0], dset['featcen_x'], dset['featcen_y'])
+    _add_grid(axs[1, 1], dset['rota_featcen_x'], dset['rota_featcen_y'])
+    _add_grid(axs[2, 0], dset['En_rota_featcen_x'], dset['En_rota_featcen_y'])
+    _add_grid(axs[2, 1], dset['En_rota2_featcen_x'], dset['En_rota2_featcen_y'])
     
-    # Plot ellipse features
+    # Plot feature ellipses/circles
     _plot_feature_ellipse(
         axs[0, 1], ellipse['featcen_sphere'].isel(feature=feature_id)
         )
@@ -231,14 +221,8 @@ def plot_coord_trafo(
     _plot_feature_ellipse(
         axs[1, 1], ellipse['rota_featcen_cart'].isel(feature=feature_id)
         )
-    circle1 = plt.Circle(
-        [0, 0], 1, fill=False, color='k', ls='-.', lw=1.5, zorder=2,
-        )
-    circle2 = plt.Circle(
-        [0, 0], 1, fill=False, color='k', ls='-.', lw=1.5, zorder=2,
-    )
-    axs[2, 0].add_patch(circle1)
-    axs[2, 1].add_patch(circle2)
+    _plot_feature_circle(axs[2, 0], (0, 0), 1)
+    _plot_feature_circle(axs[2, 1], (0, 0), 1)
     
     # Plot wind features
     axs[0, 0].quiver(
@@ -274,6 +258,34 @@ def plot_coord_trafo(
     plt.show()
 
 
+def plot_composite(compo_data: xr.DataArray):
+    var = compo_data.name
+    _, axs = plt.subplots(1, 1, figsize=(4, 3))
+    pl1 = axs.pcolormesh(
+        compo_data['En_rota2_featcen_x'],
+        compo_data['En_rota2_featcen_y'],
+        compo_data.mean(dim='feature').transpose(),
+        cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+        vmax=COMPO_PLOT_RANGE[var][1],
+    )
+    _add_grid(
+        axs, compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
+        )
+    _plot_feature_circle(axs, (0, 0), 1)
+    plt.gca().set_aspect('equal')
+    plt.colorbar(pl1, ax=axs, label=CLABEL[var])
+
+    plt.xlabel('Downwind fractional distance')
+    plt.ylabel('Crosswind fractional distance')
+    
+    plt.tight_layout()
+    axs.set_aspect('equal')
+    plt.show()
+
+
+# ------------------------------------------------------------------------------
+# Helper functions
+# ----------------
 def _plot_feature_ellipse(
         axis: Axes,
         ellipse: xr.Dataset
@@ -300,4 +312,30 @@ def _plot_feature_ellipse(
         [-min_end.isel(component=1), min_end.isel(component=1)],
         [-min_end.isel(component=0), min_end.isel(component=0)],
         zorder=2,
+        )
+    
+
+def _plot_feature_circle(
+    axis: Axes,
+    center: Tuple[float | int, float | int],
+    radius: float | int,
+    ) -> None:
+    circle = plt.Circle(
+        center, radius, fill=False, color='k', ls='-.', lw=1.5, zorder=2,
+    )
+    axis.add_patch(circle)
+    
+
+def _add_grid(
+        axis: Axes,
+        x_coord: xr.DataArray,
+        y_coord: xr.DataArray,
+        ) -> None:
+    axis.vlines(
+        x=0, ymin=y_coord.min(), ymax=y_coord.max(), lw=0.8, ls='--',
+        color='gray',
+        )
+    axis.hlines(
+        y=0, xmin=x_coord.min(), xmax=x_coord.max(), lw=0.8, ls='--',
+        color='gray',
         )
