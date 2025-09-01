@@ -2,9 +2,15 @@ from typing import Tuple
 import xarray as xr
 import numpy as np
 
+from grid_toolbox.spherical_derivatives_latlon import \
+    compute_gradient_and_laplacian_on_latlon
+
 KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 
 
+# ------------------------------------------------------------------------------
+# General coordinate functions
+# --------------------------------
 def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
     coords_orig = dset[['lat', 'lon', 'cell_area']].drop_vars('height_2')
     coords_orig = coords_orig.assign_coords(
@@ -24,8 +30,20 @@ def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
             coords_orig['lon'].diff('lon').mean().values,
             ]),
         )
-
     return coords_orig
+
+
+def calc_sphere_gradient_laplacian(
+        dset: xr.DataArray | xr.Dataset,
+        var: str,
+        ) -> xr.Dataset:
+    gradient, laplacian = compute_gradient_and_laplacian_on_latlon(dset[var])
+    dset[f'd{var}_dx'] = gradient[0]
+    dset[f'd{var}_dy'] = gradient[1]
+    dset[f'{var}_laplacian'] = laplacian
+    for v in [var, f'd{var}_dx', f'd{var}_dy']:
+        dset[v] = dset[v].where(~np.isnan(dset[f'{var}_laplacian']), np.NaN)
+    return dset
 
 
 # ------------------------------------------------------------------------------

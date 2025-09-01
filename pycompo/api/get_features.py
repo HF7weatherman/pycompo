@@ -26,7 +26,6 @@ def main():
     config_file = sys.argv[1]
     config = pcutil.read_yaml_config(config_file)
 
-    feature_var = config['data']['feature_var']
     start_time = config['data']['analysis_time'][0]
     end_time = config['data']['analysis_time'][1]
     analysis_times = [
@@ -34,12 +33,13 @@ def main():
             np.datetime64(start_time), np.datetime64(end_time), freq='MS',
             )
         ]
-
-    varlist = [feature_var] + config['data']['wind_vars']
+    
     for i in range (len(analysis_times)-1):
         # ----------------------------------------------------------------------
         # read in data
         # ------------
+        feature_var = config['data']['feature_var']
+        varlist = [feature_var] + config['data']['wind_vars']
         time_string = \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
@@ -49,7 +49,6 @@ def main():
             in_pattern = f"{config['exp']}_tropical_{var}_{time_string}.nc"
             infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
         dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
-        for var in config['data']['wind_vars']: dset[var] = dset[var].compute()
         dset['cell_area'] = get_cells_area(dset)
 
         # ----------------------------------------------------------------------
@@ -74,15 +73,20 @@ def main():
             dset[f'{feature_var}_detrend'] = \
                 dset[feature_var] - rolling_climatology[feature_var]
             feature_var = f'{feature_var}_detrend'
+            varlist = [feature_var] + config['data']['wind_vars']
 
+        for var in varlist: dset[var] = dset[var].compute()
+        
         # scale separation
-        dset[feature_var] = dset[feature_var].compute()
         dset = xr.merge([
             dset,
             pcfilter.get_gaussian_filter_bg_ano(
                 dset[feature_var], **config['filter'],
                 )
             ])
+        dset = pccoord.calc_sphere_gradient_laplacian(
+            dset, f'{feature_var}_ano',
+            )
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
         # ----------------------------------------------------------------------

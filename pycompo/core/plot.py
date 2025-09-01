@@ -9,6 +9,9 @@ import pycompo.core.coord as pccoord
 
 COMPO_PLOT_RANGE = {
     'ts_ano': [-0.3, 0.3],
+    'dts_ano_dx': [-0.000003, 0.000003],
+    'dts_ano_dy': [-0.000003, 0.000003],
+    'ts_ano_laplacian': [-0.0000000001, 0.0000000001],
     'pr_ano': [-3, 3],
     'hfls_ano': [-6, 6],
     'hfss_ano': [-1.5, 1.5],
@@ -18,6 +21,9 @@ COMPO_PLOT_RANGE = {
 
 CLABEL = {
     'ts_ano': "ts_ano / K",
+    'dts_ano_dx': "dts_ano_dx / K m-1",
+    'dts_ano_dy': "dts_ano_dy / K m-1",
+    'ts_ano_laplacian': "ts_ano_laplacian / K m-2",
     'pr_ano': "pr_ano / mm day-1",
     'hfls_ano': "hfls_ano / W m-2",
     'hfss_ano': "hfss_ano / W m-2",
