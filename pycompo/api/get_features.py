@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import xarray as xr
 import warnings
+from joblib import Parallel, delayed
 from pathlib import Path
 from pandas import date_range
 
@@ -95,64 +96,71 @@ def main():
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
         # ----------------------------------------------------------------------
-        # extract anomaly features
-        # ------------------------
-        # detect anomaly features and get corresponding data cutouts
-        dset[f"{feature_var}_feature"], feature_props = extract_sst_features(
-            dset[f"{feature_var}_ano"], **config['feature']
-            )
-        dset, feature_props, feature_data = get_featcen_data_cutouts(
-            dset, feature_props, feature_var,
-            config['cutout']['search_RadRatio'],
-            )
-        feature_props = calc_feature_bg_wind(
-            feature_props, feature_data, config['data']['wind_vars'],
-            )
-        
-        # coordinate transformation
-        orig_coords = pccoord.get_coords_orig(dset)
-        feature_ellipse = get_ellipse_params(feature_props, orig_coords)
-        feature_data = pccoord.add_featcen_coords(
-            orig_coords, feature_data, feature_props, feature_ellipse,
+        # extract and save anomaly features
+        # ---------------------------------
+        Parallel(n_jobs=64)(
+            delayed(process_one_timestep)(dset, time, config)
+            for time in dset["time"]
             )
         
         # clean up
         del dset
-        del feature_ellipse
         gc.collect()
 
-    # TODO: MERGE TOGETHER ALL MONTHS IF POSSIBLE
+
+def process_one_timestep(dset, time, config):
+    data = dset.sel(time=time)
+    feature_var = config['data']['feature_var']
+    data[f"{feature_var}_feature"], feature_props = extract_sst_features(
+        data[f"{feature_var}_ano"], **config['feature']
+        )
+    data, feature_props, feature_data = get_featcen_data_cutouts(
+        data, feature_props, feature_var,
+        config['cutout']['search_RadRatio'],
+        )
+    feature_props = calc_feature_bg_wind(
+        feature_props, feature_data, config['data']['wind_vars'],
+        )
+    
+    # coordinate transformation
+    orig_coords = pccoord.get_coords_orig(data)
+    feature_ellipse = get_ellipse_params(feature_props, orig_coords)
+    feature_data = pccoord.add_featcen_coords(
+        orig_coords, feature_data, feature_props, feature_ellipse,
+        )
 
     # ----------------------------------------------------------------------
     # write output
     # ------------
     analysis_identifier = f"{config['exp']}_{config['pycompo_name']}"
-
+    file_timestr = pcutil.np_datetime2file_datestr(time.values)
+    
     # save feature props
-    outpath = Path(f"{config['data']['outpath']}/{analysis_identifier}/")
+    outpath = Path(
+        f"{config['data']['outpath']}/{analysis_identifier}/feature_props/"
+        )
     outpath.mkdir(parents=True, exist_ok=True)
     outfile = Path(
-        f"{analysis_identifier}_feature_props_{file_time_string}.nc"
+        f"{analysis_identifier}_feature_props_{file_timestr}.nc"
         )
     feature_props.attrs["identifier"] = analysis_identifier
     feature_props.to_netcdf(str(outpath/outfile))
 
     # save feature data
-    outpath = Path(
-        f"{config['data']['outpath']}/{analysis_identifier}/" + \
-        f"{analysis_identifier}_feature_data_{file_time_string}/"
-        )
-    outpath.mkdir(parents=True, exist_ok=True)
-
     for data in feature_data:
+        outpath = Path(
+            f"{config['data']['outpath']}/{analysis_identifier}/" + \
+            f"feature_data/{analysis_identifier}_feature_data_{file_timestr}/"
+            )
+        outpath.mkdir(parents=True, exist_ok=True)
         feature_id = data['feature_id'].values
         outfile = Path(
-            f"{analysis_identifier}_feature_data_{file_time_string}_" + \
+            f"{analysis_identifier}_feature_data_{file_timestr}_" + \
             f"feature{feature_id:04d}.nc"
             )
         data.attrs["identifier"] = analysis_identifier
         data.drop(['height_2', 'uas', 'vas']).to_netcdf(str(outpath/outfile))
-
+    
 
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":

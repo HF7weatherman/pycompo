@@ -80,10 +80,12 @@ def _get_sst_features(
                 data.sel(time=time), threshold
                 )
             times_list = times_list + [time.values]*len(feature_radii)
-            features = xr.concat(features_list, "time") 
+            features = xr.concat(features_list, "time")
 
     else: 
-        _get_sst_features_single_timestep(data, threshold)
+        feature_radii = _get_sst_features_single_timestep(data, threshold)
+        times_list = times_list + [data.time.values]*len(feature_radii)
+        features = xr.concat(features_list, "time")
     
     feature_props = xr.Dataset(
         coords={
