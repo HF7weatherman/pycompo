@@ -120,6 +120,9 @@ def get_gaussian_filter_bg_ano(
         dset[f'{var}_bg'] = dset[f'{var}_bg'].transpose(*tuple(orig_dims))
         dset[f'{var}_ano'] = dset[var] - dset[f'{var}_bg']
 
+    dset[f"{var}_bg"] = dset[f"{var}_bg"].assign_attrs(dset[var].attrs)
+    dset[f"{var}_ano"] = dset[f"{var}_ano"].assign_attrs(dset[var].attrs)
+
     return dset
 
 
