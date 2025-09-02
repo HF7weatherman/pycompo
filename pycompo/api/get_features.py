@@ -35,21 +35,26 @@ def main():
         ]
     
     for i in range (len(analysis_times)-1):
+        file_time_string = \
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
+        
         # ----------------------------------------------------------------------
         # read in data
         # ------------
         feature_var = config['data']['feature_var']
         varlist = [feature_var] + config['data']['wind_vars']
-        time_string = \
-            f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
-            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
         infiles = []
         for var in varlist:
             inpath = Path(config['data']['inpaths'][var])
-            in_pattern = f"{config['exp']}_tropical_{var}_{time_string}.nc"
+            in_pattern = f"{config['exp']}_tropical_{var}_{file_time_string}.nc"
             infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
         dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
         dset['cell_area'] = get_cells_area(dset)
+
+
+
+        dset = dset.isel(time=slice(0, 2))
 
         # ----------------------------------------------------------------------
         # precprocessing
@@ -127,7 +132,7 @@ def main():
     outpath = Path(f"{config['data']['outpath']}/{analysis_identifier}/")
     outpath.mkdir(parents=True, exist_ok=True)
     outfile = Path(
-        f"{analysis_identifier}_feature_props_{start_time}-{end_time}.nc"
+        f"{analysis_identifier}_feature_props_{file_time_string}.nc"
         )
     feature_props.attrs["identifier"] = analysis_identifier
     feature_props.to_netcdf(str(outpath/outfile))
@@ -135,15 +140,15 @@ def main():
     # save feature data
     outpath = Path(
         f"{config['data']['outpath']}/{analysis_identifier}/" + \
-        f"{analysis_identifier}_feature_data_{start_time}-{end_time}/"
+        f"{analysis_identifier}_feature_data_{file_time_string}/"
         )
     outpath.mkdir(parents=True, exist_ok=True)
 
-    for data in feature_data[:3]:
+    for data in feature_data:
         feature_id = data['feature_id'].values
         outfile = Path(
-            f"{analysis_identifier}_feature_data_{start_time}-{end_time}_" + \
-            f"feature{feature_id}.nc"
+            f"{analysis_identifier}_feature_data_{file_time_string}_" + \
+            f"feature{feature_id:04d}.nc"
             )
         data.attrs["identifier"] = analysis_identifier
         data.drop(['height_2', 'uas', 'vas']).to_netcdf(str(outpath/outfile))
