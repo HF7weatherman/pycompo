@@ -26,7 +26,7 @@ def extract_sst_features(
         )
     feature_props = xr.merge([basic_feature_props, advanced_feature_props])
     feature_props = feature_props.assign({
-        'ts_detrend_ano_mean': _area_weighted_feature_mean(
+        f'{sst_dset.name}_mean': _area_weighted_feature_mean(
             feature_map, sst_dset, feature_props,
             )
         })
