@@ -35,14 +35,18 @@ def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
 
 def calc_sphere_gradient_laplacian(
         dset: xr.DataArray | xr.Dataset,
-        var: str,
+        feature_var: str,
         ) -> xr.Dataset:
-    gradient, laplacian = compute_gradient_and_laplacian_on_latlon(dset[var])
-    dset[f'd{var}_dx'] = gradient[0]
-    dset[f'd{var}_dy'] = gradient[1]
-    dset[f'{var}_laplacian'] = laplacian
-    for v in [var, f'd{var}_dx', f'd{var}_dy']:
-        dset[v] = dset[v].where(~np.isnan(dset[f'{var}_laplacian']), np.NaN)
+    gradient, laplacian = compute_gradient_and_laplacian_on_latlon(
+        dset[feature_var]
+        )
+    dset[f'd{feature_var}_dx'] = gradient[0]
+    dset[f'd{feature_var}_dy'] = gradient[1]
+    dset[f'{feature_var}_laplacian'] = laplacian
+    for var in dset.data_vars:
+        dset[var] = dset[var].where(
+            ~np.isnan(dset[f'{feature_var}_laplacian']), np.NaN
+            )
     return dset
 
 

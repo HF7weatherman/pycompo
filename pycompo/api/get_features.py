@@ -13,10 +13,11 @@ import pycompo.core.coord as pccoord
 import pycompo.core.filter as pcfilter
 import pycompo.core.utils as pcutil
 
+from pycompo.core.composite import get_compo_coords_ds
 from pycompo.core.feature_cutout import get_featcen_data_cutouts
 from pycompo.core.ellipse import get_ellipse_params
 from pycompo.core.sst_features import extract_sst_features
-from pycompo.core.wind import calc_feature_bg_wind
+from pycompo.core.wind import calc_feature_bg_wind, add_wind_grads
 
 warnings.filterwarnings(action='ignore')
 
@@ -44,18 +45,14 @@ def main():
         # read in data
         # ------------
         feature_var = config['data']['feature_var']
-        varlist = [feature_var] + config['data']['wind_vars']
+        varlist = [feature_var] + config['data']['wind_vars'] + \
+            config['data']['study_vars']
         infiles = []
         for var in varlist:
             inpath = Path(config['data']['inpaths'][var])
             in_pattern = f"{config['exp']}_tropical_{var}_{file_time_string}.nc"
             infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
         dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
-        dset['cell_area'] = get_cells_area(dset)
-
-
-
-        dset = dset.isel(time=slice(0, 2))
 
         # ----------------------------------------------------------------------
         # precprocessing
@@ -84,15 +81,17 @@ def main():
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation
-        dset = xr.merge([
-            dset,
-            pcfilter.get_gaussian_filter_bg_ano(
-                dset[feature_var], **config['filter'],
-                )
-            ])
-        dset = pccoord.calc_sphere_gradient_laplacian(
-            dset, f'{feature_var}_ano',
+        filter_vars = [feature_var] + config['data']['study_vars']
+        dset_filter = pcfilter.get_gaussian_filter_bg_ano(
+            dset[filter_vars], **config['filter']
             )
+        dset_filter = dset_filter[[f"{var}_ano" for var in filter_vars]]
+        dset_filter = pccoord.calc_sphere_gradient_laplacian(
+            dset_filter, f'{feature_var}_ano',
+            )
+
+        dset = xr.merge([dset[config['data']['wind_vars']], dset_filter])
+        dset['cell_area'] = get_cells_area(dset)
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
         # ----------------------------------------------------------------------
@@ -115,11 +114,11 @@ def process_one_timestep(dset, time, config):
         data[f"{feature_var}_ano"], **config['feature']
         )
     data, feature_props, feature_data = get_featcen_data_cutouts(
-        data, feature_props, feature_var,
-        config['cutout']['search_RadRatio'],
+        data, feature_props, feature_var, config['cutout']['search_RadRatio'],
         )
     feature_props = calc_feature_bg_wind(
         feature_props, feature_data, config['data']['wind_vars'],
+        calc_sfcwind=True,
         )
     
     # coordinate transformation
@@ -128,38 +127,52 @@ def process_one_timestep(dset, time, config):
     feature_data = pccoord.add_featcen_coords(
         orig_coords, feature_data, feature_props, feature_ellipse,
         )
+    feature_data = add_wind_grads(feature_data, feature_props, feature_var)
+    
+    # remapping to composite coordinate
+    feature_compo_data = get_compo_coords_ds(feature_data, feature_var, config)
 
-    # ----------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # write output
     # ------------
-    analysis_identifier = f"{config['exp']}_{config['pycompo_name']}"
+    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
     file_timestr = pcutil.np_datetime2file_datestr(time.values)
     
     # save feature props
     outpath = Path(
-        f"{config['data']['outpath']}/{analysis_identifier}/feature_props/"
+        f"{config['data']['outpath']}/{analysis_idf}/feature_props/"
         )
     outpath.mkdir(parents=True, exist_ok=True)
-    outfile = Path(
-        f"{analysis_identifier}_feature_props_{file_timestr}.nc"
-        )
-    feature_props.attrs["identifier"] = analysis_identifier
+    outfile = Path(f"{analysis_idf}_feature_props_{file_timestr}.nc")
+    feature_props.attrs["identifier"] = analysis_idf
     feature_props.to_netcdf(str(outpath/outfile))
 
     # save feature data
-    for data in feature_data:
-        outpath = Path(
-            f"{config['data']['outpath']}/{analysis_identifier}/" + \
-            f"feature_data/{analysis_identifier}_feature_data_{file_timestr}/"
-            )
-        outpath.mkdir(parents=True, exist_ok=True)
-        feature_id = data['feature_id'].values
-        outfile = Path(
-            f"{analysis_identifier}_feature_data_{file_timestr}_" + \
-            f"feature{feature_id:04d}.nc"
-            )
-        data.attrs["identifier"] = analysis_identifier
-        data.drop(['height_2', 'uas', 'vas']).to_netcdf(str(outpath/outfile))
+    if config['data']['save_feature_data']:
+        for data in feature_data:
+            outpath = Path(
+                f"{config['data']['outpath']}/{analysis_idf}/" + \
+                f"feature_data/{analysis_idf}_feature_data_{file_timestr}/"
+                )
+            outpath.mkdir(parents=True, exist_ok=True)
+            feature_id = data['feature_id'].values
+            outfile = Path(
+                f"{analysis_idf}_feature_data_{file_timestr}_" + \
+                f"feature{feature_id:04d}.nc"
+                )
+            data.attrs["identifier"] = analysis_idf
+            data.drop(['height_2', 'uas', 'vas']).to_netcdf(
+                str(outpath/outfile)
+                )
+
+    # save feature composite data
+    outpath = Path(
+        f"{config['data']['outpath']}/{analysis_idf}/feature_compo_data/"
+        )
+    outpath.mkdir(parents=True, exist_ok=True)
+    outfile = Path(f"{analysis_idf}_feature_compo_data_{file_timestr}.nc")
+    feature_compo_data.attrs["identifier"] = analysis_idf
+    feature_compo_data.to_netcdf(str(outpath/outfile))
     
 
 # ------------------------------------------------------------------------------
