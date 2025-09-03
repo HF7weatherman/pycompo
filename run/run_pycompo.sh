@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_ngc5004_pc02.yaml
-RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/api/get_features_full.py
+RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/api/get_features.py
 
 # GET FEATURES
 sbatch <<EOF
