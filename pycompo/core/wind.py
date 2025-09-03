@@ -19,18 +19,36 @@ def calc_feature_bg_wind(
 
     if calc_sfcwind:
         # Calculate sfcwind speed and direction
-        feature_props['bg_sfcwind'] = _calc_sfcwind_speed(
+        feature_props['bg_sfcwind'] = _calc_windspeed(
             feature_props[f'bg_{wind_vars[0]}'],
             feature_props[f'bg_{wind_vars[1]}'],
         )
-        feature_props['bg_sfcwind_dir'] = _calc_sfcwind_dir(
+        feature_props['bg_sfcwind_dir'] = _calc_winddir(
             feature_props[f'bg_{wind_vars[0]}'],
             feature_props[f'bg_{wind_vars[1]}'],
         )
     return feature_props
 
+
+def add_wind_grads(
+        feature_data_in: list,
+        feature_props: xr.Dataset,
+        feature_var: str,
+        ) -> list:
+    feature_data_out = []
+    for idx, _ in enumerate(feature_props['feature_id']):
+        props = feature_props.isel(feature=idx)
+        data = feature_data_in[idx]
+        wind_grads = _calc_wind_grads(props, data, feature_var)
+
+        data[f'downwind_{feature_var}_ano_grad'] = wind_grads[0]
+        data[f'crosswind_{feature_var}_ano_grad'] = wind_grads[1]
+        feature_data_out.append(data)
+
+    return feature_data_out
+
     
-def _calc_sfcwind_speed(
+def _calc_windspeed(
         u: xr.DataArray | float,
         v: xr.DataArray | float,
         ) -> xr.DataArray | float:
@@ -47,7 +65,7 @@ def _calc_sfcwind_speed(
     return sfcwind_speed
 
 
-def _calc_sfcwind_dir(
+def _calc_winddir(
         u: xr.DataArray | float,
         v: xr.DataArray | float,
         unit: str="deg"
@@ -72,3 +90,20 @@ def _calc_sfcwind_dir(
         wind_dir = wind_dir.rename('sfcwind').assign_attrs(attrs)
         
     return wind_dir
+
+
+def _calc_wind_grads(
+        feature_props: xr.Dataset,
+        feature_data: xr.Dataset,
+        grad_var: str,
+        ) -> Tuple[xr.DataArray, xr.DataArray]:
+    cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']
+    sin_winddir = feature_props['bg_vas'] / feature_props['bg_sfcwind']
+    downwind_sst_grad = \
+        cos_winddir * feature_data[f'd{grad_var}_ano_dx'] + \
+        sin_winddir * feature_data[f'd{grad_var}_ano_dy']
+    crosswind_sst_grad = \
+        -sin_winddir * feature_data[f'd{grad_var}_ano_dx'] + \
+         cos_winddir * feature_data[f'd{grad_var}_ano_dy']
+    
+    return (downwind_sst_grad, crosswind_sst_grad)
