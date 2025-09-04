@@ -1,7 +1,8 @@
 #!/bin/bash
 
 CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_ngc5004_pc03.yaml
-RUNFILE=/home/m/m300738/libs/pycompo/pycompo/api/get_features.py
+RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/api/get_features.py
+RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/api/combine_feature_props.py
 
 # GET FEATURES
 sbatch <<EOF
@@ -24,5 +25,30 @@ export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-python3 "${RUNFILE}" "${CONFIG_FILE}"
+python3 "${RUNFILE1}" "${CONFIG_FILE}"
+EOF
+
+
+# COMBINE FEATURE PROPS
+sbatch <<EOF
+#!/bin/bash
+#SBATCH --account=mh0731
+#SBATCH --partition=compute
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --time=08:00:00
+#SBATCH --job-name="combine_feature_props"
+#SBATCH --output=LOG/combine_feature_props.%j.out
+#SBATCH --error=LOG/combine_feature_props.%j.out
+#SBATCH --export=ALL
+
+source ~/.bashrc
+conda activate TRR181L4
+
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+python3 "${RUNFILE2}" "${CONFIG_FILE}"
 EOF
