@@ -21,7 +21,6 @@ from pycompo.core.wind import calc_feature_bg_wind, add_wind_grads
 
 warnings.filterwarnings(action='ignore')
 
-
 # ------------------------------------------------------------------------------
 def main():
     # read in settings
@@ -35,6 +34,7 @@ def main():
             np.datetime64(start_time), np.datetime64(end_time), freq='MS',
             )
         ]
+    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
     
     for i in range (len(analysis_times)-1):
         file_time_string = \
@@ -99,11 +99,28 @@ def main():
         # ----------------------------------------------------------------------
         # extract and save anomaly features
         # ---------------------------------
-        Parallel(n_jobs=64)(
+        # extract anomaly features per timestep
+        features = Parallel(n_jobs=64)(
             delayed(process_one_timestep)(dset, time, config)
             for time in dset['time']
             )
+        
+        # merge features per timestep into one file and set global feature id
+        global_feature_id = 1
+        for idx, feature in enumerate(features):
+            global_feature_id_old = global_feature_id
+            global_feature_id = global_feature_id + feature.sizes['feature']
+            global_feature_ids = range(global_feature_id_old, global_feature_id)
+            features[idx]['feature_id'] = ('feature', global_feature_ids)
 
+        features = xr.concat(features, dim='feature')
+        features.attrs["identifier"] = analysis_idf
+
+        # save feature composite data
+        outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
+        outpath.mkdir(parents=True, exist_ok=True)
+        outfile = Path(f"{analysis_idf}_features_{file_time_string}.nc")
+        features.to_netcdf(str(outpath/outfile))
 
         # ----------------------------------------------------------------------
         # clean up
@@ -142,38 +159,7 @@ def process_one_timestep(dset, time, config):
         feature_props['feature_id'].isin(feature_compo_data['feature_id']),
         drop=True,
     )
-    features = xr.merge([feature_props, feature_compo_data])
-
-    # --------------------------------------------------------------------------
-    # write output
-    # ------------
-    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
-    file_timestr = pcutil.np_datetime2file_datestr(time.values)
-
-    # save feature data
-    if config['data']['save_feature_data']:
-        for data in feature_data:
-            outpath = Path(
-                f"{config['data']['outpath']}/{analysis_idf}/" + \
-                f"feature_data/{analysis_idf}_feature_data_{file_timestr}/"
-                )
-            outpath.mkdir(parents=True, exist_ok=True)
-            feature_id = data['feature_id'].values
-            outfile = Path(
-                f"{analysis_idf}_feature_data_{file_timestr}_" + \
-                f"feature{feature_id:04d}.nc"
-                )
-            data.attrs["identifier"] = analysis_idf
-            data.drop(['height_2', 'uas', 'vas']).to_netcdf(
-                str(outpath/outfile)
-                )
-
-    # save feature composite + props data
-    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
-    outpath.mkdir(parents=True, exist_ok=True)
-    outfile = Path(f"{analysis_idf}_features_{file_timestr}.nc")
-    features.attrs["identifier"] = analysis_idf
-    features.to_netcdf(str(outpath/outfile))
+    return xr.merge([feature_props, feature_compo_data])
     
 
 # ------------------------------------------------------------------------------
