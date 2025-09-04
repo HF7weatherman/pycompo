@@ -30,7 +30,7 @@ analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
 # ------------------------------------------------------------------------------
 # build rainbelt
 # --------------
-if config['composite']['q80_pr_subsampling']['switch']:
+if config['composite']['rainbelt_subsampling']['switch']:
     rainbelt = pccompo.get_rainbelt(analysis_times, config, quantile=0.8)
 
 
@@ -46,7 +46,7 @@ keep_props = [
 inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
 
 feature_props = []
-feature_props_prq80 = []
+feature_props_rainbelt = []
 for i in range (len(analysis_times)-1):
     # read in data
     file_timestr = \
@@ -57,16 +57,16 @@ for i in range (len(analysis_times)-1):
     feature_props.append(features[keep_props])
 
     # Precipitation-based geographic subsampling
-    if config['composite']['q80_pr_subsampling']['switch']:
-        features_pr_q80 = pccompo.sample_features_geomask(features, rainbelt)
-        feature_props_prq80.append(features_pr_q80[keep_props])
+    if config['composite']['rainbelt_subsampling']['switch']:
+        features_rainbelt = pccompo.sample_features_geomask(features, rainbelt)
+        feature_props_rainbelt.append(features_rainbelt[keep_props])
 
     # Basin-based geographic subsampling
     # TODO: Implement basin-based geographical subsampling
     
 feature_props = xr.concat(set_global_feature_id(feature_props), dim='feature')
-feature_props_prq80 = xr.concat(
-    set_global_feature_id(feature_props_prq80), dim='feature',
+feature_props_rainbelt = xr.concat(
+    set_global_feature_id(feature_props_rainbelt), dim='feature',
     )
 
 # save feature composite data
@@ -75,6 +75,6 @@ outpath.mkdir(parents=True, exist_ok=True)
 
 outfile = Path(f"{analysis_idf}_feature_props_all.nc")
 feature_props.to_netcdf(str(outpath/outfile))
-if config['composite']['q80_pr_subsampling']['switch']:
-    outfile = Path(f"{analysis_idf}_feature_props_prq80_all.nc")
-    feature_props_prq80.to_netcdf(str(outpath/outfile))
+if config['composite']['rainbelt_subsampling']['switch']:
+    outfile = Path(f"{analysis_idf}_feature_props_rainbelt_all.nc")
+    feature_props_rainbelt.to_netcdf(str(outpath/outfile))
