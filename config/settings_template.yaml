@@ -1,5 +1,6 @@
 exp: ngc5004
 pycompo_name: pc01
+test: True
 
 # Basic Data Settings
 data:
@@ -34,7 +35,6 @@ data:
     ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/ps_latlon/
   outpath:
     /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
-  save_feature_data: False
   analysis_time:
     - 2020-08-01T00:00:00Z
     - 2020-09-01T00:00:00Z
