@@ -15,6 +15,15 @@ def np_datetime2file_datestr(time_np64: np.datetime64) -> str:
     return time_np64.astype('datetime64[us]').astype('O').strftime(format)
 
 
+def roll_avg(
+        dset: xr.DataArray | xr.Dataset,
+        clim_avg_days: int | float,
+        spd: int,
+        ) -> xr.DataArray | xr.Dataset:
+    window_size = int(clim_avg_days*spd + 1)
+    return dset.rolling(time=window_size, center=True).mean()
+
+
 def circ_roll_avg(
         dset: xr.DataArray | xr.Dataset,
         clim_avg_days: int | float,
