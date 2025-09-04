@@ -12,13 +12,18 @@ COMPO_PLOT_RANGE = {
     'dts_ano_dx': [-0.000003, 0.000003],
     'dts_ano_dy': [-0.000003, 0.000003],
     'ts_ano_laplacian': [-0.0000000001, 0.0000000001],
-    'downwind_ts_grad': [-0.000003, 0.000003],
-    'crosswind_ts_grad': [-0.000003, 0.000003],
-    'pr_ano': [-3, 3],
+    'downwind_ts_ano_grad': [-0.000003, 0.000003],
+    'crosswind_ts_ano_grad': [-0.000003, 0.000003],
+    'pr_ano': [-1.5, 1.5],
     'hfls_ano': [-6, 6],
     'hfss_ano': [-1.5, 1.5],
     'prw_ano': [-0.4, 0.4],
-    'sfcwind_ano': [-0.15, 0.15],
+    'rlut_ano': [-1.5, 1.5],
+    'ps_ano': [-3, 3],
+    'cllvi_ano': [-0.01, 0.01],
+    'clivi_ano': [-0.002, 0.002],
+    'sfcwind_ano': [-0.1, 0.1],
+    'sfcwind_conv_ano': [-0.000001, 0.000001],
 }
 
 CLABEL = {
@@ -26,13 +31,18 @@ CLABEL = {
     'dts_ano_dx': "dts_ano_dx / K m-1",
     'dts_ano_dy': "dts_ano_dy / K m-1",
     'ts_ano_laplacian': "ts_ano_laplacian / K m-2",
-    'downwind_ts_grad': "downwind_ts_grad / K m-1",
-    'crosswind_ts_grad': "crosswind_ts_grad / K m-1",
+    'downwind_ts_ano_grad': "downwind_ts_ano_grad / K m-1",
+    'crosswind_ts_ano_grad': "crosswind_ts_ano_grad / K m-1",
     'pr_ano': "pr_ano / mm day-1",
     'hfls_ano': "hfls_ano / W m-2",
     'hfss_ano': "hfss_ano / W m-2",
     'prw_ano': "prw_ano / mm",
+    'rlut_ano': "rlut_ano / W m-2",
+    'ps_ano': "ps_ano / Pa",
+    'cllvi_ano': "cllvi_ano / kg m-2",
+    'clivi_ano': "clivi_ano / kg m-2",
     'sfcwind_ano': "sfcwind_ano / m s-1",
+    'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
 }
 
 
@@ -275,7 +285,7 @@ def plot_composite(compo_data: xr.DataArray):
     pl1 = axs.pcolormesh(
         compo_data['En_rota2_featcen_x'],
         compo_data['En_rota2_featcen_y'],
-        compo_data.mean(dim='feature').transpose(),
+        compo_data.transpose(),
         cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
         vmax=COMPO_PLOT_RANGE[var][1],
     )
