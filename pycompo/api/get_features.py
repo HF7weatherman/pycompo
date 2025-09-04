@@ -126,6 +126,7 @@ def main():
         # clean up
         # --------
         del dset
+        del features
         gc.collect()
 
         if config['test']: break
