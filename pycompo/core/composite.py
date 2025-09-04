@@ -1,9 +1,16 @@
 import numpy as np
 import xarray as xr
 from scipy.interpolate import griddata
+from pathlib import Path
 from typing import Tuple
 
+import pycompo.core.filter as pcfilter
+import pycompo.core.utils as pcutil
 
+
+# ------------------------------------------------------------------------------
+# Rempaping to shared composite coordinates
+# -----------------------------------------
 def get_compo_coords_ds(
         feature_data: list[xr.Dataset],
         feature_var: str,
@@ -77,3 +84,61 @@ def _get_compo_vars(
         f"crosswind_{feature_var}_ano_grad",
         ]
     return feature_var_modes + [f"{var}_ano" for var in study_vars]
+
+
+# ------------------------------------------------------------------------------
+# Sampling on composite data
+# --------------------------
+def sample_features_geomask(
+        features: xr.Dataset,
+        mask: xr.DataArray,
+        ) -> xr.Dataset:
+    keep_idx = []
+    for idx, _ in enumerate(features['feature_id']):
+        feature = features.isel(feature=idx)
+        if mask.sel(time=feature['time']).isel(
+            lat=int(feature['centroid_idx'].sel(component='lat')),
+            lon=int(feature['centroid_idx'].sel(component='lon')),
+            ).values:
+            keep_idx.append(int(feature['feature_id'].values))
+    return features.where(features['feature_id'].isin(keep_idx), drop=True)
+
+
+
+def get_rainbelt(
+        analysis_times: list,
+        config: dict,
+        quantile: float=0.8
+        ) -> xr.DataArray:
+    # read in data
+    inpath = Path(config['data']['inpaths']['pr'])
+    in_pattern = f"{config['exp']}_tropical_pr_*.nc"
+    infiles = sorted([str(f) for f in inpath.rglob(in_pattern)])
+    pr_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()['pr']
+
+    # build climatology
+    if config['composite']['q80_pr_subsampling']['mode'] == 'roll_avg_clim':
+        pr_clim = pcfilter.build_hourly_climatology(
+            pr_clim, clim_baseyear=str(config['detrend']['clim_baseyear'])
+            )
+        pr_clim = pcutil.circ_roll_avg(
+            pr_clim, config['detrend']['clim_avg_days'], config['data']['spd'],
+            )
+        
+    elif config['composite']['q80_pr_subsampling']['mode'] == 'roll_avg':
+        pr_clim = pcutil.roll_avg(
+            pr_clim, config['detrend']['clim_avg_days'], config['data']['spd'],
+            )
+
+    else:
+        raise ValueError(
+            "Please provide a valid mode for 'q80_pr_subsampling'! " +
+            "Valid modes are 'roll_avg_clim' and 'roll_avg'."
+            )
+    
+    # build rainbelt from climatology
+    pr_clim = pr_clim.sel(time=slice(analysis_times[0], analysis_times[-1]))
+    pr_clim = pr_clim.persist()
+    pr_quantile = pr_clim.quantile(quantile, dim=['lat', 'lon'])
+    pr_clim = pr_clim.sel(lat=slice(*config['lat_range']), drop=True)
+    return xr.where(pr_clim >= pr_quantile, True, False)

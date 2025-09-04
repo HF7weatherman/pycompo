@@ -215,3 +215,17 @@ def _update_feature_map(
     return feature_map.where(
         feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
         )
+
+
+# ------------------------------------------------------------------------------
+# Helper functions
+# ----------------
+def set_global_feature_id(feature_list: list) -> list:
+    global_feature_id = 1
+    for idx, feature in enumerate(feature_list):
+        global_feature_id_old = global_feature_id
+        global_feature_id = global_feature_id + feature.sizes['feature']
+        global_feature_ids = range(global_feature_id_old, global_feature_id)
+        feature_list[idx]['feature_id'] = ('feature', global_feature_ids)
+
+    return feature_list

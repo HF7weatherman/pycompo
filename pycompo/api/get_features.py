@@ -11,12 +11,12 @@ from pyorg.core.geometry import get_cells_area
 
 import pycompo.core.coord as pccoord
 import pycompo.core.filter as pcfilter
+import pycompo.core.sst_features as pcsst
 import pycompo.core.utils as pcutil
 
 from pycompo.core.composite import get_compo_coords_ds
 from pycompo.core.feature_cutout import get_featcen_data_cutouts
 from pycompo.core.ellipse import get_ellipse_params
-from pycompo.core.sst_features import extract_sst_features
 from pycompo.core.wind import calc_feature_bg_wind, add_wind_grads
 
 warnings.filterwarnings(action='ignore')
@@ -106,13 +106,7 @@ def main():
             )
         
         # merge features per timestep into one file and set global feature id
-        global_feature_id = 1
-        for idx, feature in enumerate(features):
-            global_feature_id_old = global_feature_id
-            global_feature_id = global_feature_id + feature.sizes['feature']
-            global_feature_ids = range(global_feature_id_old, global_feature_id)
-            features[idx]['feature_id'] = ('feature', global_feature_ids)
-
+        features = pcsst.set_global_feature_id(features)
         features = xr.concat(features, dim='feature')
         features.attrs["identifier"] = analysis_idf
 
@@ -135,7 +129,7 @@ def main():
 def process_one_timestep(dset, time, config):
     data = dset.sel(time=time)
     feature_var = config['data']['feature_var']
-    data[f"{feature_var}_feature"], feature_props = extract_sst_features(
+    data[f"{feature_var}_feature"], feature_props = pcsst.extract_sst_features(
         data[f"{feature_var}_ano"], **config['feature']
         )
     data, feature_props, feature_data = get_featcen_data_cutouts(

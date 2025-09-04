@@ -83,3 +83,6 @@ composite:
     - -2.5
     - 2.6
     - 0.1
+  q80_pr_subsampling:
+    switch: True
+    mode: roll_avg
