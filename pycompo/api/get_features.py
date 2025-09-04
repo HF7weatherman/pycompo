@@ -54,6 +54,8 @@ def main():
             infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
         dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
 
+        if config['test']: dset = dset.isel(time=slice(0, 2))
+            
         # ----------------------------------------------------------------------
         # precprocessing
         # --------------
@@ -99,12 +101,17 @@ def main():
         # ---------------------------------
         Parallel(n_jobs=64)(
             delayed(process_one_timestep)(dset, time, config)
-            for time in dset["time"]
+            for time in dset['time']
             )
-        
+
+
+        # ----------------------------------------------------------------------
         # clean up
+        # --------
         del dset
         gc.collect()
+
+        if config['test']: break
 
 
 def process_one_timestep(dset, time, config):
@@ -129,23 +136,19 @@ def process_one_timestep(dset, time, config):
         )
     feature_data = add_wind_grads(feature_data, feature_props, feature_var)
     
-    # remapping to composite coordinate
+    # remapping to composite coordinate and creatign consistent output array
     feature_compo_data = get_compo_coords_ds(feature_data, feature_var, config)
+    feature_props = feature_props.where(
+        feature_props['feature_id'].isin(feature_compo_data['feature_id']),
+        drop=True,
+    )
+    features = xr.merge([feature_props, feature_compo_data])
 
     # --------------------------------------------------------------------------
     # write output
     # ------------
     analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
     file_timestr = pcutil.np_datetime2file_datestr(time.values)
-    
-    # save feature props
-    outpath = Path(
-        f"{config['data']['outpath']}/{analysis_idf}/feature_props/"
-        )
-    outpath.mkdir(parents=True, exist_ok=True)
-    outfile = Path(f"{analysis_idf}_feature_props_{file_timestr}.nc")
-    feature_props.attrs["identifier"] = analysis_idf
-    feature_props.to_netcdf(str(outpath/outfile))
 
     # save feature data
     if config['data']['save_feature_data']:
@@ -165,14 +168,12 @@ def process_one_timestep(dset, time, config):
                 str(outpath/outfile)
                 )
 
-    # save feature composite data
-    outpath = Path(
-        f"{config['data']['outpath']}/{analysis_idf}/feature_compo_data/"
-        )
+    # save feature composite + props data
+    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
     outpath.mkdir(parents=True, exist_ok=True)
-    outfile = Path(f"{analysis_idf}_feature_compo_data_{file_timestr}.nc")
-    feature_compo_data.attrs["identifier"] = analysis_idf
-    feature_compo_data.to_netcdf(str(outpath/outfile))
+    outfile = Path(f"{analysis_idf}_features_{file_timestr}.nc")
+    features.attrs["identifier"] = analysis_idf
+    features.to_netcdf(str(outpath/outfile))
     
 
 # ------------------------------------------------------------------------------
