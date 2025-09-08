@@ -10,6 +10,15 @@ from pycompo.core.sst_features import set_global_feature_id
 
 warnings.filterwarnings(action='ignore')
 
+# ------------------------------------------------------------------------------
+# preparations
+# ------------
+keep_props = [
+    'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind', 'bg_sfcwind_dir',
+    'ts_ano_mean', 'axis_major_length_idx', 'axis_minor_length_idx',
+    'orientation_idx',
+    ]
+
 # read in configuration file
 config_file = "/home/m/m300738/libs/pycompo/config/settings_ngc5004_pc03.yaml"
 config = pcutil.read_yaml_config(config_file)
@@ -21,33 +30,26 @@ analysis_times = [
         np.datetime64(start_time), np.datetime64(end_time), freq='MS',
         )
     ]
-analysis_times = analysis_times[:4]
-
 feature_var = config['data']['feature_var']
 analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
-
 
 # ------------------------------------------------------------------------------
 # build rainbelt
 # --------------
 if config['composite']['rainbelt_subsampling']['switch']:
     rainbelt = pccompo.get_rainbelt(analysis_times, config, quantile=0.8)
-
+    rainbelt = rainbelt.compute()
 
 # ------------------------------------------------------------------------------
 # create a single feature composite
 # ---------------------------------
-keep_props = [
-    'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind', 'bg_sfcwind_dir',
-    'ts_ano_mean', 'axis_major_length_idx', 'axis_minor_length_idx',
-    'orientation_idx',
-    ]
-
 inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
 
 feature_props = []
 feature_props_rainbelt = []
 for i in range (len(analysis_times)-1):
+    print(f"Processing feature properties for {analysis_times[i]} ...")
+    
     # read in data
     file_timestr = \
         f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
@@ -73,7 +75,7 @@ feature_props_rainbelt = xr.concat(
 outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
 outpath.mkdir(parents=True, exist_ok=True)
 
-outfile = Path(f"{analysis_idf}_feature_props_all.nc")
+outfile = Path(f"{analysis_idf}_feature_props_alltrops_all.nc")
 feature_props.to_netcdf(str(outpath/outfile))
 if config['composite']['rainbelt_subsampling']['switch']:
     outfile = Path(f"{analysis_idf}_feature_props_rainbelt_all.nc")
