@@ -7,23 +7,42 @@ from matplotlib.axes import Axes
 
 import pycompo.core.coord as pccoord
 
+COMPO_PLOT_LABEL = {
+    'ts_ano': 'surface temperature',
+    'dts_ano_dx': 'downwind sfc. temp. gradient',
+    'dts_ano_dy': 'crosswind sfc. temp. gradient',
+    'ts_ano_laplacian': 'sfc. temperature Laplacian',
+    'downwind_ts_ano_grad': 'downwind sfc. temp. gradient',
+    'crosswind_ts_ano_grad': 'crosswind sfc. temp. gradient',
+    'pr_ano': 'precipitation',
+    'hfls_ano': 'latent heat flux',
+    'hfss_ano': 'sensible heat flux',
+    'prw_ano': 'precipitable water',
+    'rlut_ano': 'TOA OLR',
+    'ps_ano': 'surface pressure',
+    'cllvi_ano': 'column cloud liquid water',
+    'clivi_ano': 'column cloud ice',
+    'sfcwind_ano': 'surface windspeed',
+    'sfcwind_conv_ano': 'surface wind convergence',
+}
+
 COMPO_PLOT_RANGE = {
     'ts_ano': [-0.3, 0.3],
-    'dts_ano_dx': [-0.000003, 0.000003],
-    'dts_ano_dy': [-0.000003, 0.000003],
-    'ts_ano_laplacian': [-0.0000000001, 0.0000000001],
-    'downwind_ts_ano_grad': [-0.000003, 0.000003],
-    'crosswind_ts_ano_grad': [-0.000003, 0.000003],
+    'dts_ano_dx': [-0.5, 0.5],
+    'dts_ano_dy': [-0.5, 0.5],
+    'ts_ano_laplacian': [-1.2, 1.2],
+    'downwind_ts_ano_grad': [-0.5, 0.5],
+    'crosswind_ts_ano_grad': [-0.5, 0.5],
     'pr_ano': [-1.5, 1.5],
     'hfls_ano': [-6, 6],
     'hfss_ano': [-1.5, 1.5],
     'prw_ano': [-0.4, 0.4],
     'rlut_ano': [-1.5, 1.5],
-    'ps_ano': [-3, 3],
-    'cllvi_ano': [-0.01, 0.01],
-    'clivi_ano': [-0.002, 0.002],
-    'sfcwind_ano': [-0.1, 0.1],
-    'sfcwind_conv_ano': [-0.000001, 0.000001],
+    'ps_ano': [-2.6, 2.6],
+    'cllvi_ano': [-10, 10],
+    'clivi_ano': [-2, 2],
+    'sfcwind_ano': [-0.12, 0.12],
+    'sfcwind_conv_ano': [-1, 1],
 }
 
 CLABEL = {
@@ -43,6 +62,26 @@ CLABEL = {
     'clivi_ano': "clivi_ano / kg m-2",
     'sfcwind_ano': "sfcwind_ano / m s-1",
     'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
+}
+
+
+CLABEL_NICE = {
+    'ts_ano': "K",
+    'dts_ano_dx': "K$\,$/$\,$100$\,$km",
+    'dts_ano_dy': "K$\,$/$\,$100$\,$km",
+    'ts_ano_laplacian': "K$\,$/$\,$100$\,$km$^{2}$",
+    'downwind_ts_ano_grad': "K$\,$/$\,$100$\,$km",
+    'crosswind_ts_ano_grad': "K$\,$/$\,$100$\,$km",
+    'pr_ano': "mm$\,$day$^{-1}$",
+    'hfls_ano': "W$\,$m$^{-2}$",
+    'hfss_ano': "W$\,$m$^{-2}$",
+    'prw_ano': "mm",
+    'rlut_ano': "W$\,$m$^{-2}$",
+    'ps_ano': "Pa",
+    'cllvi_ano': "g$\,$m$^{-2}$",
+    'clivi_ano': "g$\,$m$^{-2}$",
+    'sfcwind_ano': "m$\,$s$^{-1}$",
+    'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
 }
 
 
@@ -303,6 +342,53 @@ def plot_composite(compo_data: xr.DataArray):
     axs.set_aspect('equal')
     plt.show()
 
+
+def plot_composite_overview(compo_data: xr.DataArray, vars: list):
+    import hfplot.figure.figure as hffig
+    fig, axs = hffig.init_subfig(
+        style=None, asprat=(12.5, 10), nrow=3, ncol=3, sharex=True, sharey=True,
+        )
+
+    for i, var in enumerate(vars):
+        if var in ['hfls_ano', 'hfss_ano']:
+            pl1 = axs.ravel()[i].pcolormesh(
+                compo_data[var]['En_rota2_featcen_x'],
+                compo_data[var]['En_rota2_featcen_y'],
+                -1*compo_data[var].transpose(),
+                cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+                vmax=COMPO_PLOT_RANGE[var][1],
+            )
+        else:
+            pl1 = axs.ravel()[i].pcolormesh(
+                compo_data[var]['En_rota2_featcen_x'],
+                compo_data[var]['En_rota2_featcen_y'],
+                compo_data[var].transpose(),
+                cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+                vmax=COMPO_PLOT_RANGE[var][1],
+            )
+        _add_grid(
+            axs.ravel()[i],
+            compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
+            )
+        _plot_feature_circle(axs.ravel()[i], (0, 0), 1)
+        axs.ravel()[i].set_aspect('equal')
+        axs.ravel()[i].set_title(
+            COMPO_PLOT_LABEL[var], weight='bold', pad=12, fontsize=11,
+            )
+        cbar_ticks = [
+            COMPO_PLOT_RANGE[var][0], COMPO_PLOT_RANGE[var][0]/2, 0,
+            COMPO_PLOT_RANGE[var][1]/2, COMPO_PLOT_RANGE[var][1], 
+        ]
+        plt.colorbar(
+            pl1, ax=axs.ravel()[i], label=CLABEL_NICE[var], extend='both',
+            fraction=0.046, pad=0.05, ticks=cbar_ticks,
+            )
+        hffig.set_label(
+            axs, 'Downwind fractional distance', 'Crosswind fractional distance'
+            )
+    
+    plt.tight_layout()
+    return fig
 
 # ------------------------------------------------------------------------------
 # Helper functions
