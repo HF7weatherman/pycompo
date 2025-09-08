@@ -117,7 +117,7 @@ def get_rainbelt(
     pr_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()['pr']
 
     # build climatology
-    if config['composite']['q80_pr_subsampling']['mode'] == 'roll_avg_clim':
+    if config['composite']['rainbelt_subsampling']['mode'] == 'roll_avg_clim':
         pr_clim = pcfilter.build_hourly_climatology(
             pr_clim, clim_baseyear=str(config['detrend']['clim_baseyear'])
             )
@@ -125,14 +125,14 @@ def get_rainbelt(
             pr_clim, config['detrend']['clim_avg_days'], config['data']['spd'],
             )
         
-    elif config['composite']['q80_pr_subsampling']['mode'] == 'roll_avg':
+    elif config['composite']['rainbelt_subsampling']['mode'] == 'roll_avg':
         pr_clim = pcutil.roll_avg(
             pr_clim, config['detrend']['clim_avg_days'], config['data']['spd'],
             )
 
     else:
         raise ValueError(
-            "Please provide a valid mode for 'q80_pr_subsampling'! " +
+            "Please provide a valid mode for 'rainbelt_subsampling'! " +
             "Valid modes are 'roll_avg_clim' and 'roll_avg'."
             )
     
@@ -142,3 +142,61 @@ def get_rainbelt(
     pr_quantile = pr_clim.quantile(quantile, dim=['lat', 'lon'])
     pr_clim = pr_clim.sel(lat=slice(*config['lat_range']), drop=True)
     return xr.where(pr_clim >= pr_quantile, True, False)
+
+
+def adjust_units(
+    data: xr.Dataset,
+    vars: list,
+    ) -> xr.Dataset:
+    data_adjusted = data.copy()
+    for var in vars:
+        if var in ['downwind_ts_ano_grad', 'crosswind_ts_ano_grad']:
+            data_adjusted[var] = data_adjusted[var] * 1e5
+        if var in ['ts_ano_laplacian']:
+            data_adjusted[var] = data_adjusted[var] * 1e10
+        if var in ['cllvi_ano', 'clivi_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e3
+        if var in ['sfcwind_conv_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e5
+    return data_adjusted
+
+
+def get_quartile_compos_per_ts(
+        features: xr.Dataset,
+        feature_props_quartiles: xr.DataArray,
+        var: str,
+        ) -> dict:
+    q25 = feature_props_quartiles.sel(quantile=0.25)
+    q50 = feature_props_quartiles.sel(quantile=0.5)
+    q75 = feature_props_quartiles.sel(quantile=0.75)
+
+    return {
+        "q1": features.where(
+            features[var] <= q25, drop=True
+            ).mean(dim='feature'),
+        "q2": features.where(
+            (features[var] > q25) & (features[var] <= q50), drop=True,
+            ).mean(dim='feature'),
+        "q3": features.where(
+            (features[var] > q50) & (features[var] <= q75), drop=True,
+            ).mean(dim='feature'),
+        "q4": features.where(
+            features[var] > q75, drop=True,
+            ).mean(dim='feature'),
+        }
+
+
+def get_full_quartile_compos(
+        quartile_compo: list[dict],
+        ) -> xr.Dataset:
+    quartile_compo_dict = {
+        key: [d[key] for d in quartile_compo] for key in quartile_compo[0]
+        }
+    for key, data in quartile_compo_dict.items():
+        quartile_compo_dict[key] = \
+            xr.concat(data, dim='month').mean(dim='month')
+        
+    return xr.concat(
+        quartile_compo_dict['bg_sfcwind'].values(),
+        dim='quartile', coords='minimal', compat='override',
+        ).drop(['quantile']).assign_coords(quartile=[1, 2, 3, 4])
