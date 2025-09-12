@@ -197,6 +197,6 @@ def get_full_quartile_compos(
             xr.concat(data, dim='month').mean(dim='month')
         
     return xr.concat(
-        quartile_compo_dict['bg_sfcwind'].values(),
+        quartile_compo_dict.values(),
         dim='quartile', coords='minimal', compat='override',
         ).drop(['quantile']).assign_coords(quartile=[1, 2, 3, 4])
