@@ -140,7 +140,7 @@ def plot_coord_trafo(
     winds = winds.isel(feature=feature_id)
     _, axs = plt.subplots(3, 2, figsize=(10, 12))
 
-    clabel = CLABEL_NICE[var]
+    clabel = 'sfc. temperature anomaly / K'
     level = max(dset[var].max(), abs(dset[var].min()))
 
     # Plot data in regular geophysical coordinates
@@ -244,7 +244,7 @@ def plot_coord_trafo(
         levels=[dT_thresh], colors='gray',
         )
     axs[2, 0].scatter([0], [0], color='gray')
-    axs[2, 0].set_title('Norm. rotated feature-centric Cartesian coordinate')
+    axs[2, 0].set_title('Normalized rotated feature-centric Cartesian coordinate')
     axs[2, 0].set_xlabel('Fractional distance')
     axs[2, 0].set_ylabel('Fractional distance')
     plt.colorbar(
@@ -261,7 +261,7 @@ def plot_coord_trafo(
         levels=[dT_thresh], colors='gray',
         )
     axs[2, 1].scatter([0], [0], color='gray')
-    axs[2, 1].set_title('Norm. rotated feature-centric Cartesian coordinate')
+    axs[2, 1].set_title('Wind-aligned feature-centric Cartesian coordinate')
     axs[2, 1].set_xlabel('Downwind fractional distance')
     axs[2, 1].set_ylabel('Downwind fractional distance')
     plt.colorbar(
