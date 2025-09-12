@@ -1,6 +1,6 @@
 exp: ngc5004
-pycompo_name: pc01
-test: True
+pycompo_name: pc04
+test: False
 
 # Basic Data Settings
 data:
@@ -38,8 +38,8 @@ data:
   outpath:
     /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
   analysis_time:
-    - 2020-08-01T00:00:00Z
-    - 2020-09-01T00:00:00Z
+    - 2020-03-01T00:00:00Z
+    - 2021-03-01T00:00:00Z
 
 # Basic Analysis Settings
 lat_range:
@@ -55,14 +55,14 @@ detrend:
 # Filtering settings
 filter:
   lat_mid: 0.0
-  cutoff_scale_km: 300.0
+  cutoff_scale_km: 75.
   truncation: 1
 
 # SST-Feature Detection Settings
 feature:
   threshold: 0.2
   connectivity: 8
-  min_area: 2500.0
+  min_area: 400.0
   property_list:
     - centroid
     - axis_major_length
@@ -78,12 +78,12 @@ composite:
   anomaly_modes:
     - warm
   compo_x:
-    - -2.5
-    - 2.6
+    - -4.0
+    - 4.1
     - 0.1
   compo_y:
-    - -2.5
-    - 2.6
+    - -4.0
+    - 4.1
     - 0.1
   rainbelt_subsampling:
     switch: True
