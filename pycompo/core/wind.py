@@ -47,6 +47,23 @@ def add_wind_grads(
 
     return feature_data_out
 
+
+def add_rotate_winds(
+        feature_data_in: list,
+        feature_props: xr.Dataset,
+        ) -> list:
+    feature_data_out = []
+    for idx, _ in enumerate(feature_props['feature_id']):
+        props = feature_props.isel(feature=idx)
+        data = feature_data_in[idx]
+        rota_winds = _rotate_winds(props, data)
+
+        data[f'downwind_ano'] = rota_winds[0]
+        data[f'crosswind_ano'] = rota_winds[1]
+        feature_data_out.append(data)
+
+    return feature_data_out
+
     
 def _calc_windspeed(
         u: xr.DataArray | float,
@@ -107,3 +124,19 @@ def _calc_wind_grads(
          cos_winddir * feature_data[f'd{grad_var}_ano_dy']
     
     return (downwind_sst_grad, crosswind_sst_grad)
+
+
+def _rotate_winds(
+        feature_props: xr.Dataset,
+        feature_data: xr.Dataset,
+        ) -> Tuple[xr.DataArray, xr.DataArray]:
+    cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']
+    sin_winddir = feature_props['bg_vas'] / feature_props['bg_sfcwind']
+    downwind = \
+        cos_winddir * feature_data[f'uas_ano'] + \
+        sin_winddir * feature_data[f'vas_ano']
+    crosswind = \
+        -sin_winddir * feature_data[f'uas_ano'] + \
+         cos_winddir * feature_data[f'vas_ano']
+    
+    return (downwind, crosswind)
