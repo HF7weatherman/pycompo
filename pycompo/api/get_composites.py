@@ -1,19 +1,12 @@
-from pathlib import Path
-import xarray as xr
+import numpy as np
+import sys
 import warnings
+import xarray as xr
+from pathlib import Path
+from pandas import date_range
 
-from pyorg.core.geometry import get_cells_area
-
-import pycompo.core.coord as pccoord
-import pycompo.core.ellipse as pcellipse
-import pycompo.core.feature_cutout as pcfeatcut
-import pycompo.core.filter as pcfilter
-import pycompo.core.sst_features as pcsst
+import pycompo.core.composite as pccompo
 import pycompo.core.utils as pcutils
-import pycompo.core.wind as pcwind
-
-from pycompo.core.composite import interpolate2compo_coords
-from pycompo.core.utils import read_yaml_config
 
 warnings.filterwarnings(action='ignore')
 
@@ -21,131 +14,116 @@ warnings.filterwarnings(action='ignore')
 # ------------------------------------------------------------------------------
 def main():
     # read in settings
-    config_file = "/home/m/m300738/libs/pycompo/config/settings_template.yaml"
-    config = read_yaml_config(config_file)
+    config_file = sys.argv[1]
+    config = pcutils.read_yaml_config(config_file)
 
     start_time = config['data']['analysis_time'][0]
     end_time = config['data']['analysis_time'][1]
+    analysis_times = [
+        np.datetime64(t) for t in date_range(
+            np.datetime64(start_time), np.datetime64(end_time), freq='MS',
+            )
+        ]
+    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
+    subgroup_vars = config['composite']['subgroup_vars']
 
-    # read in data
-    infiles = []
-    for var in [config['data']['feature_var']] + config['data']['wind_vars']:
-        inpath = Path(config['data']['inpaths'][var])
-        in_pattern = \
-            f"{config['exp']}_tropical_{var}_20200801T000000Z-20200901T000000Z.nc"
-        infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
-    dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
-    for var in config['data']['wind_vars']: dset[var] = dset[var].compute()
-    dset['cell_area'] = get_cells_area(dset)
+    
+    # --------------------------------------------------------------------------
+    # preparations for composite subsampling
+    # --------------------------------------
+    # load feature_props
+    inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
+    infile = Path(f"{analysis_idf}_feature_props_alltrops_all.nc")
+    feature_props_alltrops = xr.open_dataset(str(inpath/infile))
+    feature_props_alltrops_quartiles = feature_props_alltrops.quantile(
+        [0.25, 0.50, 0.75]
+        )
 
-    # 2) BG trend removal and filtering
-    # a) Substract climatology
-    if config['detrend']['switch']:
-        feature_var = config['data']['feature_var']
+    # build rainbelt if necessary
+    if config['composite']['rainbelt_subsampling']['switch']:
+        rainbelt = pccompo.get_rainbelt(analysis_times, config, quantile=0.8)
+        rainbelt = rainbelt.compute()
+        infile = Path(f"{analysis_idf}_feature_props_rainbelt_all.nc")
+        feature_props_rainbelt = xr.open_dataset(str(inpath/infile))
+        feature_props_rainbelt_quartiles = feature_props_rainbelt.quantile(
+            [0.25, 0.50, 0.75]
+            )
 
-        # Read in data for building the climatology
-        inpath = Path(config['data']['inpaths'][feature_var])
-        in_pattern = f"{config['exp']}_tropical_{feature_var}_*.nc"
-        infiles = sorted([str(f) for f in inpath.rglob(in_pattern)])
-        dset_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()
+
+    # --------------------------------------------------------------------------
+    # create feature composite per time step
+    # --------------------------------------
+    inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
+    alltrops_compo = []
+    alltrops_quartile_compo = {var: [] for var in subgroup_vars}
+    if config['composite']['rainbelt_subsampling']['switch']:
+        rainbelt_compo = []
+        rainbelt_quartile_compo = {var: [] for var in subgroup_vars}
+
+    for i in range (len(analysis_times)-1):
+        # read in data
+        file_timestr = \
+            f"{pcutils.np_datetime2file_datestr(analysis_times[i])}-" + \
+            f"{pcutils.np_datetime2file_datestr(analysis_times[i+1])}"
+        infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
+        features_alltrops = xr.open_dataset(infile).compute()
+        alltrops_compo.append(features_alltrops.mean(dim='feature'))
         
-        # Detrend dataset with multiyear monthly climatology
-        climatology = pcfilter.build_hourly_climatology(
-            dset_clim, clim_baseyear=str(config['detrend']['clim_baseyear'])
-            )
-        rolling_climatology = pcutils.circ_roll_avg(
-            climatology, config['detrend']['clim_avg_days'], config['data']['spd'],
-            )
-        dset[f'{feature_var}_detrend'] = \
-            dset[feature_var] - rolling_climatology[feature_var]
-        dset[f'{feature_var}_detrend'] = dset[f'{feature_var}_detrend'].compute()
-        config['data']['feature_var'] = f'{feature_var}_detrend'
+        # subsample based on BG conditions
+        for var in subgroup_vars:
+            alltrops_quartile_compo[var].append(
+                pccompo.get_quartile_compos_per_ts(
+                    features_alltrops,
+                    feature_props_alltrops_quartiles[var], var,
+                    )
+                )
 
-    # b) Scale separation using a Gaussian filter
-    dset = xr.merge([
-        dset,
-        pcfilter.get_gaussian_filter_bg_ano(
-            dset[config['data']['feature_var']], **config['filter'],
-            )
-        ])
-    dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
-    orig_coords = pccoord.get_coords_orig(dset)
-
-    # 4) Detect SST anomaly features
-    dset[f"{config['data']['feature_var']}_feature"], feature_props = \
-        pcsst.extract_sst_features(
-            dset[f"{config['data']['feature_var']}_ano"], **config['feature']
-        )
-
-    # 5) Create feature-centric Cartesian coordinate
-        # a) Coordinate transformation to Cartesian coordinate
-        # b) Rotation to align major axis with abcissa (in geophys. coord. space)
-        # c) Normalize with major axis length (in geophys. coord. space)
-
-    # 6) Create wind-aligned normalized coordinate system
-    dset, feature_props, feature_data = pcfeatcut.get_featcen_data_cutouts(
-        dset, feature_props, config['cutout']['search_RadRatio'],
-        )
-
-    feature_ellipse = pcellipse.get_ellipse_params(feature_props, orig_coords)
-
-    feature_props = pcwind.calc_feature_bg_wind(
-        feature_props, feature_data, config['data']['wind_vars'],
-        )
-    feature_data = pccoord.add_featcen_coords(
-        orig_coords, feature_data, feature_props, feature_ellipse,
-        )
-
-    # 8) Write the output
-    analysis_identifier = f"{config['exp']}_{config['pycompo_name']}"
-
-    # save feature props
-    outpath = Path(f"{config['data']['outpath']}/{analysis_identifier}/")
-    outpath.mkdir(parents=True, exist_ok=True)
-    outfile = Path(
-        f"{analysis_identifier}_feature_props_{start_time}-{end_time}.nc"
-        )
-    feature_props.attrs["identifier"] = analysis_identifier
-    feature_props.to_netcdf(str(outpath/outfile))
-
-    # save feature data
-    outpath = Path(
-        f"{config['data']['outpath']}/{analysis_identifier}/" + \
-        f"{analysis_identifier}_feature_data_{start_time}-{end_time}/"
-        )
+        # Precipitation-based geographic subsampling
+        if config['composite']['rainbelt_subsampling']['switch']:
+            features_rainbelt = pccompo.sample_features_geomask(
+                features_alltrops, rainbelt,
+                )
+            rainbelt_compo.append(features_rainbelt.mean(dim='feature'))
+            
+            # subsample based on BG conditions
+            for var in subgroup_vars:
+                rainbelt_quartile_compo[var].append(
+                    pccompo.get_quartile_compos_per_ts(
+                        features_rainbelt,
+                        feature_props_alltrops_quartiles[var], var,
+                        )
+                    )
+                
+    # --------------------------------------------------------------------------
+    # merge to a full feature composite
+    # ---------------------------------
+    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
     outpath.mkdir(parents=True, exist_ok=True)
 
-    for data in feature_data[:3]:
-        feature_id = data['feature_id'].values
-        outfile = Path(
-            f"{analysis_identifier}_feature_data_{start_time}-{end_time}_" + \
-            f"feature{feature_id}.nc"
-            )
-        data.attrs["identifier"] = analysis_identifier
-        data.drop(['height_2', 'uas', 'vas']).to_netcdf(str(outpath/outfile))
+    alltrops_compo = xr.concat(alltrops_compo, dim='month').mean(dim='month')
+    outfile = Path(f"{analysis_idf}_composite_alltrops_all.nc")
+    alltrops_compo.to_netcdf(str(outpath/outfile))
 
-#### BUILD THE COMPOSITES
-    # 1) Read in data
-        # a) SST cutouts data
-        # b) Data to build composites from
-        # 7) Remap to the same Cartesian coordinate system to be able to align data and create composites
-compo_varlst = [
-    f"{config['data']['feature_var']}_ano", "pr_ano", "prw_ano", "hfls_ano",
-    "hfss_ano", "sfcwind_ano",
-    ]
-feature_compo_data = {
-    var: interpolate2compo_coords(
-        feature_data,
-        (config['composite']['compo_x'], config['composite']['compo_y']),
-        var
-        ) for var in compo_varlst
-    }
-feature_compo_data = xr.merge([feature_compo_data[var] for var in compo_varlst])
+    for var in subgroup_vars:
+        alltrops_quartile_compo[var] = pccompo.get_full_quartile_compos(
+            alltrops_quartile_compo[var],
+        )
+        outfile = Path(f"{analysis_idf}_composite_alltrops_{var}_quartiles.nc")
+        alltrops_quartile_compo[var].to_netcdf(str(outpath/outfile))
+            
+    if config['composite']['rainbelt_subsampling']['switch']:
+        rainbelt_compo = \
+            xr.concat(rainbelt_compo, dim='month').mean(dim='month')
+        outfile = Path(f"{analysis_idf}_composite_rainbelt_all.nc")
+        rainbelt_compo.to_netcdf(str(outpath/outfile))
+        
+        for var in subgroup_vars:
+            rainbelt_quartile_compo[var] = pccompo.get_full_quartile_compos(
+                rainbelt_quartile_compo[var],
+                )
+            outfile = Path(f"{analysis_idf}_composite_rainbelt_{var}_quartiles.nc")
+            rainbelt_quartile_compo[var].to_netcdf(str(outpath/outfile))
 
-# 8) Filter features that should be used for composites:
-    # a) Size-based sampling
-    # b) Geographic sampling (only within a monthly moving window of the 48mm-contour of PRW)
-    # c) Analysis-time sampling
-    # d) BG-wind-based sampling
-
-# 9) Construction of feature-based composites
+# ------------------------------------------------------------------------------
+if __name__ == "__main__":
+    main()
