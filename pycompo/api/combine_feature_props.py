@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 import xarray as xr
 import warnings
 from pathlib import Path
@@ -20,7 +21,7 @@ keep_props = [
     ]
 
 # read in configuration file
-config_file = "/home/m/m300738/libs/pycompo/config/settings_ngc5004_pc03.yaml"
+config_file = sys.argv[1]
 config = pcutil.read_yaml_config(config_file)
 
 start_time = config['data']['analysis_time'][0]
