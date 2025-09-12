@@ -140,11 +140,13 @@ def plot_coord_trafo(
     winds = winds.isel(feature=feature_id)
     _, axs = plt.subplots(3, 2, figsize=(10, 12))
 
-    clabel = f'{var} / K'
+    clabel = CLABEL_NICE[var]
+    level = max(dset[var].max(), abs(dset[var].min()))
 
     # Plot data in regular geophysical coordinates
     pl0 = axs[0, 0].pcolormesh(
         dset['lon'], dset['lat'], dset[var], cmap='RdBu_r',
+        vmin=-level, vmax=level,
         )
     axs[0, 0].contour(
         dset['lon'], dset['lat'], dset[var], levels=[dT_thresh], colors='gray',
@@ -166,6 +168,7 @@ def plot_coord_trafo(
     # Plot data in feature-centric geophysical coordinates
     pl1 = axs[0, 1].pcolormesh(
         dset['featcen_lon'], dset['featcen_lat'], dset[var], cmap='RdBu_r',
+        vmin=-level, vmax=level,
         )
     axs[0, 1].contour(
         dset['featcen_lon'], dset['featcen_lat'], dset[var],
@@ -188,6 +191,7 @@ def plot_coord_trafo(
     # Plot data in feature-centric Cartesian coordinates
     pl1 = axs[1, 0].pcolormesh(
         dset['featcen_x'], dset['featcen_y'], dset[var], cmap='RdBu_r',
+        vmin=-level, vmax=level,
         )
     axs[1, 0].contour(
         dset['featcen_x'], dset['featcen_y'], dset[var],
@@ -210,7 +214,7 @@ def plot_coord_trafo(
     # Plot data in rotated feature-centric Cartesian coordinates
     pl1 = axs[1, 1].pcolormesh(
         dset['rota_featcen_x'], dset['rota_featcen_y'], dset[var],
-        cmap='RdBu_r',
+        cmap='RdBu_r', vmin=-level, vmax=level,
         )
     axs[1, 1].contour(
         dset['rota_featcen_x'], dset['rota_featcen_y'], dset[var],
@@ -233,7 +237,7 @@ def plot_coord_trafo(
     # Plot data in normalized rotated feature-centric Cartesian coordinates
     pl1 = axs[2, 0].pcolormesh(
         dset['En_rota_featcen_x'], dset['En_rota_featcen_y'], dset[var],
-        cmap='RdBu_r',
+        cmap='RdBu_r', vmin=-level, vmax=level,
         )
     axs[2, 0].contour(
         dset['En_rota_featcen_x'], dset['En_rota_featcen_y'], dset[var],
@@ -250,7 +254,7 @@ def plot_coord_trafo(
     # Plot data in normalized rotated feature-centric Cartesian coordinates
     pl1 = axs[2, 1].pcolormesh(
         dset['En_rota2_featcen_x'], dset['En_rota2_featcen_y'], dset[var],
-        cmap='RdBu_r',
+        cmap='RdBu_r', vmin=-level, vmax=level,
         )
     axs[2, 1].contour(
         dset['En_rota2_featcen_x'], dset['En_rota2_featcen_y'], dset[var],
