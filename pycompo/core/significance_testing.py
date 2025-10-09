@@ -1,0 +1,221 @@
+from scipy import stats
+import numpy as np
+import xarray as xr
+
+# ------------------------------------------------------------------------------
+# Functions for local significance test
+# -------------------------------------
+def calc_compo_ttest(
+        feature_compo_data: xr.Dataset,
+        popmean: float = 0.0,
+    ) -> tuple[xr.Dataset, xr.Dataset]:
+    """Calculate t-test for each grid point in the composite dataset.
+
+    Parameters
+    ----------
+    feature_compo_data : xr.Dataset
+        Composite dataset with dimensions (feature, y, x).
+    popmean : float, optional
+        Mean value to compare against (default is 0.0).
+
+    Returns
+    -------
+    tstat : xr.Dataset
+        Dataset of t-statistics for each variable.
+    pvalue : xr.Dataset
+        Dataset of p-values for each variable.
+    """
+    tstat, pvalue = _calc_compo_ttest(feature_compo_data, popmean)
+    tstat = _ttest_dict2xarray(tstat, feature_compo_data)
+    pvalue = _ttest_dict2xarray(pvalue, feature_compo_data)
+    return tstat, pvalue
+
+
+def _calc_compo_ttest(
+        feature_compo_data: xr.Dataset,
+        popmean: float = 0.0,
+    ) -> tuple[dict, dict]:
+    """
+    Performs a one-sample t-test for each variable in the input xr.Dataset along 
+    the 'feature' dimension.
+
+    Parameters
+    ----------
+    feature_compo_data : xr.Dataset
+        An xr.Dataset where the first dimension must be 'feature'.
+        Each variable in the dataset will be tested independently.
+    popmean : float, optional
+        The population mean to test against. Default is 0.0.
+
+    Returns
+    -------
+    tstat : dict
+        Dictionary mapping variable names to arrays of t-statistics.
+    pvalue : dict
+        Dictionary mapping variable names to arrays of p-values.
+
+    Raises
+    ------
+    ValueError
+        If the first dimension of `feature_compo_data` is not 'feature'.
+    """
+    if not list(feature_compo_data.dims.keys())[0] == 'feature':
+        raise ValueError(
+            "The first dimension of feature_compo_data must be 'feature'."
+            )
+    ttest_results = {
+        var: stats.ttest_1samp(feature_compo_data[var], popmean=popmean, axis=0)
+        for var in feature_compo_data.data_vars
+        }
+    tstat = {var: data.statistic for var, data in ttest_results.items()}
+    pvalue = {var: data.pvalue for var, data in ttest_results.items()}
+
+    return tstat, pvalue
+
+
+def _ttest_dict2xarray(
+        data_dict: dict,
+        feature_compo_data: xr.Dataset
+    ) -> xr.Dataset:
+    return xr.Dataset(
+        data_vars = {
+            var: (('x', 'y'), data) for var, data in data_dict.items()
+            },
+        coords = {
+            'En_rota2_featcen_x': feature_compo_data['En_rota2_featcen_x'],
+            'En_rota2_featcen_y': feature_compo_data['En_rota2_featcen_y']
+            }
+        )
+
+
+def get_local_significance(
+        pvalue: xr.Dataset,
+        alpha: float=0.05
+        ) -> xr.Dataset:
+    return xr.Dataset(
+        data_vars = {
+            var: (('x', 'y'), data.data < alpha)
+            for var, data in pvalue.data_vars.items()
+            },
+        coords = {
+            'En_rota2_featcen_x': pvalue['En_rota2_featcen_x'],
+            'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
+            }
+        )
+
+
+# ------------------------------------------------------------------------------
+# Functions for field significance test
+# -------------------------------------
+def get_field_significance(
+        pvalue: xr.Dataset,
+        alpha_FDR: float=0.1
+        ) -> xr.Dataset:
+    return xr.Dataset(
+        data_vars = {
+            var: (
+                ('x', 'y'),
+                multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
+                ) for var, data in pvalue.data_vars.items()
+            },
+        coords = {
+            'En_rota2_featcen_x': pvalue['En_rota2_featcen_x'],
+            'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
+            }
+        )
+
+def multiple_hypothesis_test_with_FDR(
+        p_field: np.ndarray,
+        alpha_FDR: float=0.1,
+        gap_threshold: int=10,
+        minimum_segment_length: int=10,
+        ) -> np.ndarray:
+    """
+    Perform a False Discovery Rate (FDR) correction on a 2D field of p-values,
+    with additional logic for segment selection and minimum segment length.
+
+    Reference: Wilks (2016) - "The stippling shows statistically significant
+    grid points: how research results are routinely overstated and 
+    over-interpreted, and what to do about it."
+
+    Parameters
+    ----------
+    p_field : np.ndarray
+        2D array of p-values.
+    alpha_FDR : float, optional
+        False discovery rate level (default: 0.1).
+    gap_threshold : int, optional
+        Minimum gap between indices to split segments (default: 10).
+    minimum_segment_length : int, optional
+        Minimum length for a segment to be considered significant (default: 10).
+
+    Returns
+    -------
+    sigmask : np.ndarray
+        Boolean array of the same shape as p_field, True for statistically
+        significant grid points, False otherwise.
+    """
+
+    N_points = p_field.size
+    p_vector = p_field.flatten()
+    p_vector_ascend = np.sort(p_vector)
+
+    idx = np.arange(1, N_points + 1)
+
+    # Step 1: find p-values satisfying the FDR condition (Benjamini-Hochberg)
+    #   and their indices.
+    selmask = p_vector_ascend - alpha_FDR * idx / N_points <= 1e-5
+    p_vector_select = p_vector_ascend[selmask]
+    if p_vector_select.size == 0:
+        print("None of the p-values are smaller than pFDR.")
+        return np.zeros_like(p_field, dtype=bool)
+    idx_select = np.where(selmask)[0]
+
+    # Step 2: identify large consecutive segments
+    edge_idxs = np.where(np.diff(idx_select) >= gap_threshold)[0]
+
+    if edge_idxs.size > 0:
+        dim1Dist = np.concatenate(
+            ([edge_idxs[0]], np.diff(edge_idxs),
+             [len(idx_select) - edge_idxs[-1]])
+            )
+    else:
+        dim1Dist = np.array([len(idx_select)])
+
+    # Split into segments
+    segments = np.split(p_vector_select, np.cumsum(dim1Dist[:-1]))
+    N_segments = len(segments)
+    print(f"nseg = {N_segments}")
+
+    if N_segments > 1:
+        print("special case:")
+        seg_lengths = np.array([len(s) for s in segments])
+        maxlen = np.max(seg_lengths)
+        maxid = np.argmax(seg_lengths)
+        p_segment_select = segments[maxid]
+
+        print(f"Segment length = {maxlen}")
+
+        if maxlen > minimum_segment_length:
+            # find number of insignificant p-values before this segment
+            pid = np.argmin(np.abs(p_segment_select[0] - p_vector_ascend))
+            insig_datalen = pid
+            if insig_datalen > round(0.1 * maxlen):
+                print(f"Segment rejected due to insig_datalen = {insig_datalen}")
+                p_segment_select = np.array([])
+        else:
+            p_segment_select = np.array([])
+
+    else:
+        p_segment_select = p_vector_select
+        if len(p_segment_select) < minimum_segment_length:
+            p_segment_select = np.array([])
+
+    if p_segment_select.size > 0:
+        p_FDR = np.max(p_segment_select)
+        sigmask = p_field <= p_FDR
+    else:
+        print("None of the p-values are smaller than pFDR.")
+        sigmask = np.zeros_like(p_field, dtype=bool)
+
+    return sigmask

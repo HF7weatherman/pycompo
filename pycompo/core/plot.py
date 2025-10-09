@@ -340,7 +340,10 @@ def plot_coord_trafo(
     plt.show()
 
 
-def plot_composite(compo_data: xr.DataArray):
+def plot_composite(
+        compo_data: xr.DataArray,
+        sigmask: xr.DataArray | None = None,
+        ) -> None:
     var = compo_data.name
     _, axs = plt.subplots(1, 1, figsize=(4, 3))
     pl1 = axs.pcolormesh(
@@ -350,6 +353,8 @@ def plot_composite(compo_data: xr.DataArray):
         cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
         vmax=COMPO_PLOT_RANGE[var][1],
     )
+    if sigmask is not None: plot_sigmask(axs, sigmask)
+
     _add_grid(
         axs, compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
         )
@@ -365,7 +370,10 @@ def plot_composite(compo_data: xr.DataArray):
     plt.show()
 
 
-def plot_composite_overview(compo_data: xr.DataArray, vars: list):
+def plot_composite_overview(
+        compo_data: xr.Dataset,
+        sigmask: xr.Dataset | None,
+        vars: list):
     import hfplot.figure.figure as hffig
     fig, axs = hffig.init_subfig(
         style=None, asprat=(12.5, 10), nrow=3, ncol=3, sharex=True, sharey=True,
@@ -388,6 +396,7 @@ def plot_composite_overview(compo_data: xr.DataArray, vars: list):
                 cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
                 vmax=COMPO_PLOT_RANGE[var][1],
             )
+        if sigmask is not None: plot_sigmask(axs.ravel()[i], sigmask[var])
         _add_grid(
             axs.ravel()[i],
             compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
@@ -468,3 +477,15 @@ def _add_grid(
         y=0, xmin=x_coord.min(), xmax=x_coord.max(), lw=0.8, ls='--',
         color='gray',
         )
+    
+def plot_sigmask(
+        axis: Axes,
+        sigmask: xr.DataArray
+        ) -> None:
+    x2d, y2d = np.meshgrid(
+        sigmask['En_rota2_featcen_x'], sigmask['En_rota2_featcen_y']
+        )
+    axis.scatter(
+        x2d[~sigmask.transpose()], y2d[~sigmask.transpose()],
+        s=5, marker='.', alpha=0.9, color='k', edgecolors='none',
+    )
