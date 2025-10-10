@@ -171,7 +171,7 @@ def multiple_hypothesis_test_with_FDR(
             )
         if p_vector_select.size == 0:
             print("None of the p-values are smaller than pFDR.")
-            sigmask = np.zeros_like(p_field, dtype=bool)
+            return np.zeros_like(p_field, dtype=bool)
 
     p_FDR = np.max(p_vector_select)
     sigmask = p_field <= p_FDR
