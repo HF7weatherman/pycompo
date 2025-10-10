@@ -243,3 +243,58 @@ def fdr_heuristics(
             p_segment_select = np.array([])
 
     return p_segment_select
+
+
+
+# ------------------------------------------------------------------------------
+# Manual significance test
+# ------------------------
+def yearly_ttest_from_monthly_data(
+        mon_mean: xr.Dataset,
+        mon_var: xr.Dataset,
+        n_per_mon: xr.DataArray,
+        popmean: float=0.0,
+        ):
+    year_mean, year_var = _monthly2yearly_stats(mon_mean, mon_var, n_per_mon)
+    t_stat, p_value = _manual_t_test(
+        year_mean, year_var, n_per_mon.sum(dim='month'), popmean
+        )
+    return t_stat, p_value
+
+
+def _monthly2yearly_stats(
+        mon_mean: xr.Dataset,
+        mon_var: xr.Dataset,
+        n_per_mon: xr.DataArray,
+        ) -> tuple[xr.Dataset, xr.Dataset]:
+    year_mean = (n_per_mon * mon_mean).sum(dim='month') / \
+        n_per_mon.sum(dim='month')
+    year_var = (
+        ((n_per_mon - 1) * mon_var) + (n_per_mon * (mon_mean - year_mean)**2)
+        ).sum(dim='month') / (n_per_mon.sum(dim='month') - 1)
+    
+    return year_mean, year_var
+    
+
+def _manual_t_test(
+        mean: np.ndarray,
+        variance: np.ndarray,
+        n_sample: int,
+        popmean: float=0.0
+        ) -> tuple[np.ndarray, np.ndarray]:
+    std_error = np.sqrt(variance / n_sample)
+    t_stat = (mean - popmean) / std_error
+    p_value = {
+        var: stats.t.sf(np.abs(t_stat[var].values), df=n_sample-1) * 2
+        for var in t_stat.data_vars
+        }
+    p_value = xr.Dataset(
+        data_vars = {
+            var: (('x', 'y'), data) for var, data in p_value.items()
+            },
+        coords = {
+            'En_rota2_featcen_x': t_stat['En_rota2_featcen_x'],
+            'En_rota2_featcen_y': t_stat['En_rota2_featcen_y']
+            }
+        )
+    return t_stat, p_value
