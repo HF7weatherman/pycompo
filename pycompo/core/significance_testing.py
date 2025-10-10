@@ -127,8 +127,8 @@ def get_field_significance(
 def multiple_hypothesis_test_with_FDR(
         p_field: np.ndarray,
         alpha_FDR: float=0.1,
-        gap_threshold: int=10,
-        minimum_segment_length: int=10,
+        apply_heuristics: bool=True,
+        **kwargs
         ) -> np.ndarray:
     """
     Perform a False Discovery Rate (FDR) correction on a 2D field of p-values,
@@ -156,33 +156,64 @@ def multiple_hypothesis_test_with_FDR(
         significant grid points, False otherwise.
     """
 
-    N_points = p_field.size
-    p_vector = p_field.flatten()
-    p_vector_ascend = np.sort(p_vector)
-
-    idx = np.arange(1, N_points + 1)
-
-    # Step 1: find p-values satisfying the FDR condition (Benjamini-Hochberg)
-    #   and their indices.
-    selmask = p_vector_ascend - alpha_FDR * idx / N_points <= 1e-5
-    p_vector_select = p_vector_ascend[selmask]
+    # Step 1: Apply Benjamini-Hochberg procedure
+    p_vector_ascend, p_vector_select, selmask = \
+        _benjamini_hochberg_procedure(p_field, alpha_FDR)
+    
     if p_vector_select.size == 0:
         print("None of the p-values are smaller than pFDR.")
         return np.zeros_like(p_field, dtype=bool)
-    idx_select = np.where(selmask)[0]
 
-    # Step 2: identify large consecutive segments
+    # Step 2: Apply heuristics
+    if apply_heuristics:
+        p_vector_select = fdr_heuristics(
+            p_vector_ascend, p_vector_select, selmask, **kwargs
+            )
+        if p_vector_select.size == 0:
+            print("None of the p-values are smaller than pFDR.")
+            sigmask = np.zeros_like(p_field, dtype=bool)
+
+    p_FDR = np.max(p_vector_select)
+    sigmask = p_field <= p_FDR
+    return sigmask
+
+
+def _benjamini_hochberg_procedure(
+        p_field: np.ndarray,
+        alpha_FDR: float
+        ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Apply the Benjamini-Hochberg procedure to control the FDR."""
+    N_points = p_field.size
+    p_vector = p_field.flatten()
+    p_vector_ascend = np.sort(p_vector)
+    idx = np.arange(1, N_points + 1)
+
+    selmask = p_vector_ascend - alpha_FDR * idx / N_points <= 1e-5
+    p_vector_select = p_vector_ascend[selmask]
+    
+    return p_vector_ascend, p_vector_select, selmask
+
+
+def fdr_heuristics(
+        p_vector_ascend: np.ndarray,
+        p_vector_select: np.ndarray,
+        selmask: np.ndarray,
+        gap_threshold: int=10,
+        minimum_segment_length: int=10
+        ) -> np.ndarray:
+    # Step 1: identify large consecutive segments
+    idx_select = np.where(selmask)[0]
     edge_idxs = np.where(np.diff(idx_select) >= gap_threshold)[0]
 
     if edge_idxs.size > 0:
         dim1Dist = np.concatenate(
             ([edge_idxs[0]], np.diff(edge_idxs),
-             [len(idx_select) - edge_idxs[-1]])
+            [len(idx_select) - edge_idxs[-1]])
             )
     else:
         dim1Dist = np.array([len(idx_select)])
 
-    # Split into segments
+    # Step 2: split into segments
     segments = np.split(p_vector_select, np.cumsum(dim1Dist[:-1]))
     N_segments = len(segments)
     print(f"nseg = {N_segments}")
@@ -211,11 +242,4 @@ def multiple_hypothesis_test_with_FDR(
         if len(p_segment_select) < minimum_segment_length:
             p_segment_select = np.array([])
 
-    if p_segment_select.size > 0:
-        p_FDR = np.max(p_segment_select)
-        sigmask = p_field <= p_FDR
-    else:
-        print("None of the p-values are smaller than pFDR.")
-        sigmask = np.zeros_like(p_field, dtype=bool)
-
-    return sigmask
+    return p_segment_select
