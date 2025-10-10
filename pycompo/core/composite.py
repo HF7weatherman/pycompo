@@ -9,7 +9,7 @@ import pycompo.core.utils as pcutil
 
 
 # ------------------------------------------------------------------------------
-# Rempaping to shared composite coordinates
+# Remapping to shared composite coordinates
 # -----------------------------------------
 def get_compo_coords_ds(
         feature_data: list[xr.Dataset],
@@ -25,6 +25,9 @@ def get_compo_coords_ds(
             var
             ) for var in compo_vars
         }
+    feature_compo_data = _check_feature_id_consistency_across_vars(
+        feature_compo_data
+        )
     return xr.merge([feature_compo_data[var] for var in compo_vars])
 
 
@@ -84,6 +87,37 @@ def _get_compo_vars(
         f"crosswind_{feature_var}_ano_grad",
         ]
     return feature_var_modes + [f"{var}_ano" for var in study_vars]
+
+
+def _check_feature_id_consistency_across_vars(
+        feature_compo_data: dict[str, xr.Dataset]
+        ) -> dict[str, xr.Dataset]:
+    N_features = [data.sizes['feature'] for data in feature_compo_data.values()]
+    while len(set(N_features)) > 1:
+        print("Warning: Different number of features for different variables!")
+        feature_ids = {
+            var: data['feature_id'].values
+            for var, data in feature_compo_data.items()
+            }
+        min_key = min(feature_ids, key=lambda k: len(feature_ids[k]))
+        
+        remove_ids = []
+        for var, ids in feature_ids.items():
+            if var == min_key: continue
+            for id in ids:
+                if id not in feature_ids[min_key]: remove_ids.append(id)
+
+        for id in set(remove_ids):
+            feature_compo_data = {
+                var: data.where(data['feature_id'] != id, drop=True)
+                for var, data in feature_compo_data.items()
+            }
+
+        N_features = [
+            data.sizes['feature'] for data in feature_compo_data.values()
+            ]
+
+    return feature_compo_data
 
 
 # ------------------------------------------------------------------------------
