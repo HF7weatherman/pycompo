@@ -122,7 +122,8 @@ def main():
         )
     _, alltrops_pvalue = pcsig.yearly_ttest_from_monthly_data(
         alltrops_compo[compo_vars], alltrops_var[compo_vars],
-        alltrops_N_features, popmean=0.0,
+        alltrops_N_features,
+        popmean=config['sigtest']['null_hypothesis_popmean'],
         )
     outfile = Path(f"{analysis_idf}_pvalue_alltrops_all.nc")
     alltrops_pvalue.to_netcdf(str(outpath/outfile))
@@ -146,7 +147,8 @@ def main():
             )
         _, rainbelt_pvalue = pcsig.yearly_ttest_from_monthly_data(
             rainbelt_compo[compo_vars], rainbelt_var[compo_vars], 
-            rainbelt_N_features, popmean=0.0,
+            rainbelt_N_features,
+            popmean=config['sigtest']['null_hypothesis_popmean'],
             )
         outfile = Path(f"{analysis_idf}_pvalue_rainbelt_all.nc")
         rainbelt_pvalue.to_netcdf(str(outpath/outfile))
