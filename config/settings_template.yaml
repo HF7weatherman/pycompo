@@ -35,11 +35,11 @@ data:
     sfcwind: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/sfcwind_latlon/
     sfcwind_conv: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/sfcwind_conv_latlon/
     ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/ps_latlon/
-  outpath:
-    /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
+  outpath: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
   analysis_time:
     - 2020-08-01T00:00:00Z
     - 2020-09-01T00:00:00Z
+  daily_average: True
 
 # Basic Analysis Settings
 lat_range:

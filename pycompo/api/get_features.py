@@ -54,6 +54,8 @@ def main():
             infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
         dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
 
+        if config['data']['daily_average']:
+            dset = dset.resample(time='1D').mean()
         if config['test']: dset = dset.isel(time=slice(0, 2))
             
         # ----------------------------------------------------------------------
