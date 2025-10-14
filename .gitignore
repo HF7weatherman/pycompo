@@ -208,3 +208,5 @@ __marimo__/
 
 # Own stuff
 */LOG
+config/*
+!config/settings_template.yaml
