@@ -73,6 +73,11 @@ def main():
             f"{pcutils.np_datetime2file_datestr(analysis_times[i+1])}"
         infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
         features_alltrops = xr.open_dataset(infile).compute()
+        compo_vars = [
+            v for v in features_alltrops.data_vars
+            if features_alltrops[v].ndim == 3
+            ]
+    
         alltrops_compo.append(features_alltrops.mean(dim='feature'))
         alltrops_var.append(features_alltrops.var(dim='feature', ddof=1))
         alltrops_N_features.append(features_alltrops.sizes['feature'])
@@ -116,7 +121,8 @@ def main():
         np.array(alltrops_N_features), dims=["month"],
         )
     _, alltrops_pvalue = pcsig.yearly_ttest_from_monthly_data(
-        alltrops_compo, alltrops_var, alltrops_N_features, popmean=0.0,
+        alltrops_compo[compo_vars], alltrops_var[compo_vars],
+        alltrops_N_features, popmean=0.0,
         )
     outfile = Path(f"{analysis_idf}_pvalue_alltrops_all.nc")
     alltrops_pvalue.to_netcdf(str(outpath/outfile))
@@ -139,7 +145,8 @@ def main():
             np.array(rainbelt_N_features), dims=["month"],
             )
         _, rainbelt_pvalue = pcsig.yearly_ttest_from_monthly_data(
-            rainbelt_compo, rainbelt_var, rainbelt_N_features, popmean=0.0,
+            rainbelt_compo[compo_vars], rainbelt_var[compo_vars], 
+            rainbelt_N_features, popmean=0.0,
             )
         outfile = Path(f"{analysis_idf}_pvalue_rainbelt_all.nc")
         rainbelt_pvalue.to_netcdf(str(outpath/outfile))
