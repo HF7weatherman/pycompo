@@ -37,6 +37,22 @@ def interpolate2compo_coords(
         var: str,
         method: str='linear',
         ):
+    if "height" in feature_data[0][var].dims:
+        return _interpolate2compo_coords_3d(
+            feature_data, compo_target_coords, var, method
+            )
+    else:
+        return _interpolate2compo_coords_2d(
+            feature_data, compo_target_coords, var, method
+            )
+    
+
+def _interpolate2compo_coords_2d(
+        feature_data: list[xr.Dataset],
+        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        var: str,
+        method: str='linear',
+        ):
     compo_X, compo_Y = np.meshgrid(
         compo_target_coords[0], compo_target_coords[1],
         )
@@ -51,8 +67,8 @@ def interpolate2compo_coords(
         try:
             grid_data = griddata(
                 points=(orig_x, orig_y),   # original coords
-                values=orig_data,        # values
-                xi=(compo_X, compo_Y),
+                values=orig_data,          # values
+                xi=(compo_X, compo_Y),     # target coords
                 method=method  # 'linear', 'nearest', or 'cubic'
             )
         except:
@@ -72,6 +88,57 @@ def interpolate2compo_coords(
             'En_rota2_featcen_y': ('y', compo_target_coords[1]),
             },
         dims=('feature', 'x', 'y'),
+        name=var,
+    )
+
+
+def _interpolate2compo_coords_3d(
+        feature_data: list[xr.Dataset],
+        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        var: str,
+        method: str='linear',
+        ):
+    compo_X, compo_Y = np.meshgrid(
+        compo_target_coords[0], compo_target_coords[1],
+        )
+
+    compo_data = []
+    feature_ids = []
+    for data in feature_data:
+        orig_x = data['En_rota2_featcen_x'].data.ravel()
+        orig_y = data['En_rota2_featcen_y'].data.ravel()
+        orig_height = data['height'].data
+        try:
+            N_height_levels = len(data['height'].values)
+            grid_data = np.empty(
+                (compo_X.shape[0], compo_Y.shape[1], N_height_levels)
+                )
+            for h in range(N_height_levels):
+                orig_data = data[var].isel(height=h).data.ravel()
+                grid_data[:, :, h] = griddata(
+                    points=(orig_x, orig_y),   # original coords
+                    values=orig_data,          # values
+                    xi=(compo_X, compo_Y),     # target coords
+                    method=method  # 'linear', 'nearest', or 'cubic'
+                    )
+        except:
+            continue
+
+        # Don't include features that have NaNs within the remapped target data
+        if not (~np.isnan(grid_data)).all(): continue
+        
+        compo_data.append(grid_data.transpose(1, 0, 2))
+        feature_ids.append(data['feature_id'].values)
+
+    return xr.DataArray(
+        compo_data,
+        coords={
+            'feature_id': ('feature', feature_ids),
+            'En_rota2_featcen_x': ('x', compo_target_coords[0]),
+            'En_rota2_featcen_y': ('y', compo_target_coords[1]),
+            'height': ('height', orig_height),
+            },
+        dims=('feature', 'x', 'y', 'height'),
         name=var,
     )
 

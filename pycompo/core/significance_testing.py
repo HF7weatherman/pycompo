@@ -79,11 +79,18 @@ def _ttest_dict2xarray(
     ) -> xr.Dataset:
     return xr.Dataset(
         data_vars = {
-            var: (('x', 'y'), data) for var, data in data_dict.items()
+            var: (('x', 'y'), data) if data.ndim == 2 else 
+            (('x', 'y', 'height'), data) for var, data in data_dict.items()
             },
         coords = {
-            'En_rota2_featcen_x': feature_compo_data['En_rota2_featcen_x'],
-            'En_rota2_featcen_y': feature_compo_data['En_rota2_featcen_y']
+            **{
+                'En_rota2_featcen_x': feature_compo_data['En_rota2_featcen_x'],
+                'En_rota2_featcen_y': feature_compo_data['En_rota2_featcen_y']
+                },
+            **(
+                {'height': feature_compo_data['height']} if
+                any(d.ndim == 3 for d in data_dict.values()) else {}
+                )
             }
         )
 
@@ -92,16 +99,7 @@ def get_local_significance(
         pvalue: xr.Dataset,
         alpha: float=0.05
         ) -> xr.Dataset:
-    return xr.Dataset(
-        data_vars = {
-            var: (('x', 'y'), data.data < alpha)
-            for var, data in pvalue.data_vars.items()
-            },
-        coords = {
-            'En_rota2_featcen_x': pvalue['En_rota2_featcen_x'],
-            'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
-            }
-        )
+    return pvalue < alpha
 
 
 # ------------------------------------------------------------------------------
@@ -113,14 +111,24 @@ def get_field_significance(
         ) -> xr.Dataset:
     return xr.Dataset(
         data_vars = {
-            var: (
-                ('x', 'y'),
-                multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
+            var: \
+                (
+                    ('x', 'y'),
+                    multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
+                ) if data.ndim == 2 else
+                (
+                    ('x', 'y', 'height'),
+                    multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
                 ) for var, data in pvalue.data_vars.items()
             },
         coords = {
-            'En_rota2_featcen_x': pvalue['En_rota2_featcen_x'],
-            'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
+            **{
+                'En_rota2_featcen_x': pvalue['En_rota2_featcen_x'],
+                'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
+                },
+            **(
+                {'height': pvalue['height']} if len(pvalue.dims) == 3 else {}
+                )
             }
         )
 

@@ -114,8 +114,8 @@ def get_gaussian_filter_bg_ano(
     if isinstance(dset, xr.DataArray):
         dset = dset.to_dataset()
 
-    orig_dims = dset.dims
     for var in dset.data_vars:
+        orig_dims = dset[var].dims
         dset[f'{var}_bg'] = (gaussian_lowpass_filter(dset[var], **kwargs))
         dset[f'{var}_bg'] = dset[f'{var}_bg'].transpose(*tuple(orig_dims))
         dset[f'{var}_ano'] = dset[var] - dset[f'{var}_bg']

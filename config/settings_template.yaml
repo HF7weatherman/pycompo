@@ -19,22 +19,35 @@ data:
     - sfcwind
     - sfcwind_conv
     - ps
-
+    - ua
+    - va
+    - wa
+    - ta
+    - hus
+    - cli
+    - clw
   spd: 8
   inpaths:
-    ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/ts_latlon/
-    uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/uas_latlon/
-    vas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/vas_latlon/
-    pr: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/pr_latlon/
-    prw: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/prw_latlon/
-    hfls: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/hfls_latlon/
-    hfss: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/hfss_latlon/
-    rlut: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/rlut_latlon/
-    cllvi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/cllvi_latlon/
-    clivi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/clivi_latlon/
-    sfcwind: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/sfcwind_latlon/
-    sfcwind_conv: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/sfcwind_conv_latlon/
-    ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/ps_latlon/
+    ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
+    uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
+    vas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/vas_latlon/
+    pr: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/pr_latlon/
+    prw: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/prw_latlon/
+    hfls: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/hfls_latlon/
+    hfss: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/hfss_latlon/
+    rlut: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/rlut_latlon/
+    cllvi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/cllvi_latlon/
+    clivi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/clivi_latlon/
+    sfcwind: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfcwind_latlon/
+    sfcwind_conv: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfcwind_conv_latlon/
+    ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ps_latlon/
+    ua: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ua_latlon/
+    va: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/va_latlon/
+    wa: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/wa_latlon/
+    ta: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ta_latlon/
+    hus: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/hus_latlon/
+    cli: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/cli_latlon/
+    clw: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/clw_latlon/
   outpath: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
   analysis_time:
     - 2020-08-01T00:00:00Z
