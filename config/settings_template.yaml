@@ -108,3 +108,7 @@ composite:
 # Significance test settings
 sigtest:
   null_hypothesis_popmean: 0.0
+
+# Parallelization
+parallel:
+  n_jobs_get_features: 32  # Set to 32 for daily data and to 64 for (3-)hourly data. Keep below 64 to allow each worker enough memory.

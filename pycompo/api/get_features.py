@@ -99,7 +99,7 @@ def main():
         # extract and save anomaly features
         # ---------------------------------
         # extract anomaly features per timestep
-        features = Parallel(n_jobs=64)(
+        features = Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
             delayed(process_one_timestep)(dset, time, config)
             for time in dset['time']
             )
