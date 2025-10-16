@@ -52,7 +52,6 @@ data:
   analysis_time:
     - 2020-08-01T00:00:00Z
     - 2020-09-01T00:00:00Z
-  daily_average: True
 
 # Basic Analysis Settings
 lat_range:
