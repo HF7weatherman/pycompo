@@ -136,6 +136,7 @@ def multiple_hypothesis_test_with_FDR(
         p_field: np.ndarray,
         alpha_FDR: float=0.1,
         apply_heuristics: bool=True,
+        logging: bool=False,
         **kwargs
         ) -> np.ndarray:
     """
@@ -169,16 +170,16 @@ def multiple_hypothesis_test_with_FDR(
         _benjamini_hochberg_procedure(p_field, alpha_FDR)
     
     if p_vector_select.size == 0:
-        print("None of the p-values are smaller than pFDR.")
+        if logging: print("None of the p-values are smaller than pFDR.")
         return np.zeros_like(p_field, dtype=bool)
 
     # Step 2: Apply heuristics
     if apply_heuristics:
         p_vector_select = fdr_heuristics(
-            p_vector_ascend, p_vector_select, selmask, **kwargs
+            p_vector_ascend, p_vector_select, selmask, logging, **kwargs
             )
         if p_vector_select.size == 0:
-            print("None of the p-values are smaller than pFDR.")
+            if logging: print("None of the p-values are smaller than pFDR.")
             return np.zeros_like(p_field, dtype=bool)
 
     p_FDR = np.max(p_vector_select)
@@ -206,6 +207,7 @@ def fdr_heuristics(
         p_vector_ascend: np.ndarray,
         p_vector_select: np.ndarray,
         selmask: np.ndarray,
+        logging: bool,
         gap_threshold: int=10,
         minimum_segment_length: int=10
         ) -> np.ndarray:
@@ -224,23 +226,25 @@ def fdr_heuristics(
     # Step 2: split into segments
     segments = np.split(p_vector_select, np.cumsum(dim1Dist[:-1]))
     N_segments = len(segments)
-    print(f"nseg = {N_segments}")
+    if logging: print(f"nseg = {N_segments}")
 
     if N_segments > 1:
-        print("special case:")
+        if logging: print("special case:")
         seg_lengths = np.array([len(s) for s in segments])
         maxlen = np.max(seg_lengths)
         maxid = np.argmax(seg_lengths)
         p_segment_select = segments[maxid]
 
-        print(f"Segment length = {maxlen}")
+        if logging: print(f"Segment length = {maxlen}")
 
         if maxlen > minimum_segment_length:
             # find number of insignificant p-values before this segment
             pid = np.argmin(np.abs(p_segment_select[0] - p_vector_ascend))
             insig_datalen = pid
             if insig_datalen > round(0.1 * maxlen):
-                print(f"Segment rejected due to insig_datalen = {insig_datalen}")
+                if logging: print(
+                    f"Segment rejected due to insig_datalen = {insig_datalen}"
+                    )
                 p_segment_select = np.array([])
         else:
             p_segment_select = np.array([])

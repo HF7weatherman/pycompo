@@ -105,3 +105,7 @@ composite:
     - bg_sfcwind
     - radius_km
     - ts_ano_mean
+
+# Significance test settings
+sigtest:
+  null_hypothesis_popmean: 0.0
