@@ -67,14 +67,14 @@ detrend:
 # Filtering settings
 filter:
   lat_mid: 0.0
-  cutoff_scale_km: 300.0
+  cutoff_scale_km: 75.0
   truncation: 1
 
 # SST-Feature Detection Settings
 feature:
   threshold: 0.2
   connectivity: 8
-  min_area: 2500.0
+  min_area: 400.0
   property_list:
     - centroid
     - axis_major_length
@@ -90,12 +90,12 @@ composite:
   anomaly_modes:
     - warm
   compo_x:
-    - -2.5
-    - 2.6
+    - -4.0
+    - 4.1
     - 0.1
   compo_y:
-    - -2.5
-    - 2.6
+    - -4.0
+    - 4.1
     - 0.1
   rainbelt_subsampling:
     switch: True
