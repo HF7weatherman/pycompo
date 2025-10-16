@@ -27,6 +27,11 @@ COMPO_PLOT_LABEL = {
     'uas_ano': 'zonal windspeed',
     'vas_ano': 'meridional windspeed',
     'sfcwind_conv_ano': 'surface wind convergence',
+    'ta_ano': 'temperature',
+    'wa_ano': 'vertical velocity',
+    'hus_ano': 'specific humidity',
+    'clw_ano': 'cloud liquid water',
+    'cli_ano': 'cloud ice water',
 }
 
 COMPO_PLOT_RANGE = {
@@ -51,6 +56,11 @@ COMPO_PLOT_RANGE = {
     'downwind_ano': [-0.4, 0.4],
     'crosswind_ano': [-0.12, 0.12],
     'sfcwind_conv_ano': [-1.3, 1.3],
+    'ta_ano': [-0.05, 0.05],
+    'wa_ano': [-2.5, 2.5],
+    'hus_ano': [-30., 30.],
+    'clw_ano': [-2.5, 2.5],
+    'cli_ano': [-2.5, 2.5],
 }
 
 CLABEL = {
@@ -75,6 +85,11 @@ CLABEL = {
     'downwind_ano': "downwind_ano / m s-1",
     'crosswind_ano': "crosswind_ano / m s-1",
     'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
+    'ta_ano': 'ta_ano / K',
+    'wa_ano': 'wa_ano / mm s-1',
+    'hus_ano': 'hus_ano / mg kg-1',
+    'clw_ano': 'cloud liquid water / mg kg-1',
+    'cli_ano': 'cloud ice water / mg kg-1',
 }
 
 
@@ -100,6 +115,11 @@ CLABEL_NICE = {
     'downwind_ano': "m$\,$s$^{-1}$",
     'crosswind_ano': "m$\,$s$^{-1}$",
     'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
+    'ta_ano': "K",
+    'wa_ano': "mm$\,$s$^{-1}$",
+    'hus_ano': "mg$\,$kg$^{-1}$",
+    'clw_ano': "mg$\,$kg$^{-1}$",
+    'cli_ano': "mg$\,$kg$^{-1}$",
 }
 
 
@@ -420,6 +440,49 @@ def plot_composite_overview(
     
     plt.tight_layout()
     return fig
+
+
+# ------------------------------------------------------------------------------
+# Composite crosssections
+# -----------------------
+def plot_compo_crosssection(
+        compo_data: xr.Dataset,
+        vars: list,
+        sigmask: xr.Dataset | None = None,
+        ysel: int | slice | None = None,
+        ):
+    import hfplot.figure.figure as hffig
+    fig, axs = hffig.init_subfig(
+        style=None, asprat=(9, 6), nrow=2, ncol=2, sharex=True, sharey=True,
+        )
+    for i, var in enumerate(vars):
+        if ysel is not None:
+            plot_data = compo_data.sel(y=ysel).mean(dim='y')
+        else:
+            raise ValueError("Please provide a valid 'ysel'!")
+        pl = axs.ravel()[i].pcolormesh(
+            plot_data['En_rota2_featcen_x'], plot_data['altitude']/1000,
+            plot_data[var].transpose(),
+            cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+            vmax=COMPO_PLOT_RANGE[var][1],
+            )
+        axs.ravel()[i].set_title(
+            COMPO_PLOT_LABEL[var], weight='bold', pad=12, fontsize=11,
+            )
+        cbar_ticks = [
+            COMPO_PLOT_RANGE[var][0], COMPO_PLOT_RANGE[var][0]/2, 0,
+            COMPO_PLOT_RANGE[var][1]/2, COMPO_PLOT_RANGE[var][1], 
+        ]
+        plt.colorbar(
+            pl, ax=axs.ravel()[i], label=CLABEL_NICE[var], extend='both',
+            fraction=0.046, pad=0.05, ticks=cbar_ticks,
+            )
+    hffig.set_label(axs, 'Downwind fractional distance', 'Altitude / km')
+    hffig.set_limit(axs, [-4, 4], [0, 7.5])
+    
+    plt.tight_layout()
+    return fig
+
 
 # ------------------------------------------------------------------------------
 # Helper functions

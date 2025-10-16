@@ -261,6 +261,10 @@ def adjust_units(
             data_adjusted[var] = data_adjusted[var] * 1e3
         if var in ['sfcwind_conv_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e5
+        if var in ['wa_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e3
+        if var in ['hus_ano', 'clw_ano', 'cli_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e6
     return data_adjusted
 
 
