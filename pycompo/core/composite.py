@@ -152,7 +152,11 @@ def _get_compo_vars(
         f"{feature_var}_ano_laplacian",
         f"downwind_{feature_var}_ano_grad",
         f"crosswind_{feature_var}_ano_grad",
+        f"downwinds_ano",
+        f"crosswinds_ano",
         ]
+    if 'ua' and 'va' in study_vars:
+        feature_var_modes.extend(['downwind_ano', 'crosswind_ano'])
     return feature_var_modes + [f"{var}_ano" for var in study_vars]
 
 

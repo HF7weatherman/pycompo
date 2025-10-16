@@ -27,11 +27,16 @@ COMPO_PLOT_LABEL = {
     'uas_ano': 'zonal windspeed',
     'vas_ano': 'meridional windspeed',
     'sfcwind_conv_ano': 'surface wind convergence',
+    'downwinds_ano': "downwind windspeed",
+    'crosswinds_ano': "crosswind windspeed",
+    'downwind_ano': "downwind windspeed",
+    'crosswind_ano': "crosswind windspeed",
     'ta_ano': 'temperature',
     'wa_ano': 'vertical velocity',
     'hus_ano': 'specific humidity',
     'clw_ano': 'cloud liquid water',
     'cli_ano': 'cloud ice water',
+    'pfull_ano': 'pressure',
 }
 
 COMPO_PLOT_RANGE = {
@@ -53,6 +58,8 @@ COMPO_PLOT_RANGE = {
     'sfcwind_ano': [-0.06, 0.06],
     'uas_ano': [-0.12, 0.12],
     'vas_ano': [-0.12, 0.12],
+    'downwinds_ano': [-0.4, 0.4],
+    'crosswinds_ano': [-0.12, 0.12],
     'downwind_ano': [-0.4, 0.4],
     'crosswind_ano': [-0.12, 0.12],
     'sfcwind_conv_ano': [-1.3, 1.3],
@@ -61,6 +68,7 @@ COMPO_PLOT_RANGE = {
     'hus_ano': [-30., 30.],
     'clw_ano': [-2.5, 2.5],
     'cli_ano': [-2.5, 2.5],
+    'pfull_ano': [-1., 1.],
 }
 
 CLABEL = {
@@ -82,6 +90,8 @@ CLABEL = {
     'sfcwind_ano': "sfcwind_ano / m s-1",
     'uas_ano': "uas_ano / m s-1",
     'vas_ano': "vas_ano / m s-1",
+    'downwinds_ano': "downwinds_ano / m s-1",
+    'crosswinds_ano': "crosswinds_ano / m s-1",
     'downwind_ano': "downwind_ano / m s-1",
     'crosswind_ano': "crosswind_ano / m s-1",
     'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
@@ -90,6 +100,7 @@ CLABEL = {
     'hus_ano': 'hus_ano / mg kg-1',
     'clw_ano': 'cloud liquid water / mg kg-1',
     'cli_ano': 'cloud ice water / mg kg-1',
+    'pfull_ano': "pfull_ano / Pa",
 }
 
 
@@ -112,6 +123,8 @@ CLABEL_NICE = {
     'sfcwind_ano': "m$\,$s$^{-1}$",
     'uas_ano': "m$\,$s$^{-1}$",
     'vas_ano': "m$\,$s$^{-1}$",
+    'downwinds_ano': "m$\,$s$^{-1}$",
+    'crosswinds_ano': "m$\,$s$^{-1}$",
     'downwind_ano': "m$\,$s$^{-1}$",
     'crosswind_ano': "m$\,$s$^{-1}$",
     'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
@@ -120,6 +133,7 @@ CLABEL_NICE = {
     'hus_ano': "mg$\,$kg$^{-1}$",
     'clw_ano': "mg$\,$kg$^{-1}$",
     'cli_ano': "mg$\,$kg$^{-1}$",
+    'pfull_ano': "Pa",
 }
 
 

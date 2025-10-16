@@ -51,15 +51,23 @@ def add_wind_grads(
 def add_rotate_winds(
         feature_data_in: list,
         feature_props: xr.Dataset,
+        drop_raw_wind: bool=True,
         ) -> list:
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         props = feature_props.isel(feature=idx)
         data = feature_data_in[idx]
-        rota_winds = _rotate_winds(props, data)
-
-        data[f'downwind_ano'] = rota_winds[0]
-        data[f'crosswind_ano'] = rota_winds[1]
+        
+        if 'uas_ano' and 'vas_ano' in data.data_vars:
+            rota_winds = _rotate_winds(props, data, ('uas_ano', 'vas_ano'))
+            data[f'downwinds_ano'] = rota_winds[0]
+            data[f'crosswinds_ano'] = rota_winds[1]
+        if 'ua_ano' and 'va_ano' in data.data_vars:
+            rota_winds = _rotate_winds(props, data, ('ua_ano', 'va_ano'))
+            data[f'downwind_ano'] = rota_winds[0]
+            data[f'crosswind_ano'] = rota_winds[1]
+            if drop_raw_wind: data = data.drop(['ua_ano', 'va_ano'])
+            
         feature_data_out.append(data)
 
     return feature_data_out
@@ -129,14 +137,17 @@ def _calc_wind_grads(
 def _rotate_winds(
         feature_props: xr.Dataset,
         feature_data: xr.Dataset,
+        wind_components: Tuple[str, str],
         ) -> Tuple[xr.DataArray, xr.DataArray]:
+    zonal_wind = wind_components[0]
+    meridional_wind = wind_components[1]
     cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']
     sin_winddir = feature_props['bg_vas'] / feature_props['bg_sfcwind']
     downwind = \
-        cos_winddir * feature_data[f'uas_ano'] + \
-        sin_winddir * feature_data[f'vas_ano']
+        cos_winddir * feature_data[zonal_wind] + \
+        sin_winddir * feature_data[meridional_wind]
     crosswind = \
-        -sin_winddir * feature_data[f'uas_ano'] + \
-         cos_winddir * feature_data[f'vas_ano']
+        -sin_winddir * feature_data[zonal_wind] + \
+         cos_winddir * feature_data[meridional_wind]
     
     return (downwind, crosswind)
