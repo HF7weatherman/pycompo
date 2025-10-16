@@ -12,6 +12,7 @@ COMPO_PLOT_LABEL = {
     'dts_ano_dx': 'downwind sfc. temp. gradient',
     'dts_ano_dy': 'crosswind sfc. temp. gradient',
     'ts_ano_laplacian': 'sfc. temperature Laplacian',
+    'tas_ano': '2m air temperature',
     'downwind_ts_ano_grad': 'downwind sfc. temp. gradient',
     'crosswind_ts_ano_grad': 'crosswind sfc. temp. gradient',
     'pr_ano': 'precipitation',
@@ -23,26 +24,43 @@ COMPO_PLOT_LABEL = {
     'cllvi_ano': 'column cloud liquid water',
     'clivi_ano': 'column cloud ice',
     'sfcwind_ano': 'surface windspeed',
+    'uas_ano': 'zonal windspeed',
+    'vas_ano': 'meridional windspeed',
     'sfcwind_conv_ano': 'surface wind convergence',
+    'ta_ano': 'temperature',
+    'wa_ano': 'vertical velocity',
+    'hus_ano': 'specific humidity',
+    'clw_ano': 'cloud liquid water',
+    'cli_ano': 'cloud ice water',
 }
 
 COMPO_PLOT_RANGE = {
     'ts_ano': [-0.3, 0.3],
     'dts_ano_dx': [-0.5, 0.5],
     'dts_ano_dy': [-0.5, 0.5],
-    'ts_ano_laplacian': [-1.2, 1.2],
-    'downwind_ts_ano_grad': [-0.5, 0.5],
-    'crosswind_ts_ano_grad': [-0.5, 0.5],
+    'ts_ano_laplacian': [-12, 12],
+    'downwind_ts_ano_grad': [-0.7, 0.7],
+    'crosswind_ts_ano_grad': [-0.7, 0.7],
+    'tas_ano': [-0.3, 0.3],
     'pr_ano': [-1.5, 1.5],
     'hfls_ano': [-6, 6],
     'hfss_ano': [-1.5, 1.5],
     'prw_ano': [-0.4, 0.4],
     'rlut_ano': [-1.5, 1.5],
-    'ps_ano': [-2.6, 2.6],
+    'ps_ano': [-1., 1.],
     'cllvi_ano': [-10, 10],
     'clivi_ano': [-2, 2],
-    'sfcwind_ano': [-0.12, 0.12],
-    'sfcwind_conv_ano': [-1, 1],
+    'sfcwind_ano': [-0.06, 0.06],
+    'uas_ano': [-0.12, 0.12],
+    'vas_ano': [-0.12, 0.12],
+    'downwind_ano': [-0.4, 0.4],
+    'crosswind_ano': [-0.12, 0.12],
+    'sfcwind_conv_ano': [-1.3, 1.3],
+    'ta_ano': [-0.05, 0.05],
+    'wa_ano': [-2.5, 2.5],
+    'hus_ano': [-30., 30.],
+    'clw_ano': [-2.5, 2.5],
+    'cli_ano': [-2.5, 2.5],
 }
 
 CLABEL = {
@@ -52,6 +70,7 @@ CLABEL = {
     'ts_ano_laplacian': "ts_ano_laplacian / K m-2",
     'downwind_ts_ano_grad': "downwind_ts_ano_grad / K m-1",
     'crosswind_ts_ano_grad': "crosswind_ts_ano_grad / K m-1",
+    'tas_ano': "tas_ano / K",
     'pr_ano': "pr_ano / mm day-1",
     'hfls_ano': "hfls_ano / W m-2",
     'hfss_ano': "hfss_ano / W m-2",
@@ -61,7 +80,16 @@ CLABEL = {
     'cllvi_ano': "cllvi_ano / kg m-2",
     'clivi_ano': "clivi_ano / kg m-2",
     'sfcwind_ano': "sfcwind_ano / m s-1",
+    'uas_ano': "uas_ano / m s-1",
+    'vas_ano': "vas_ano / m s-1",
+    'downwind_ano': "downwind_ano / m s-1",
+    'crosswind_ano': "crosswind_ano / m s-1",
     'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
+    'ta_ano': 'ta_ano / K',
+    'wa_ano': 'wa_ano / mm s-1',
+    'hus_ano': 'hus_ano / mg kg-1',
+    'clw_ano': 'cloud liquid water / mg kg-1',
+    'cli_ano': 'cloud ice water / mg kg-1',
 }
 
 
@@ -72,6 +100,7 @@ CLABEL_NICE = {
     'ts_ano_laplacian': "K$\,$/$\,$100$\,$km$^{2}$",
     'downwind_ts_ano_grad': "K$\,$/$\,$100$\,$km",
     'crosswind_ts_ano_grad': "K$\,$/$\,$100$\,$km",
+    'tas_ano': "K",
     'pr_ano': "mm$\,$day$^{-1}$",
     'hfls_ano': "W$\,$m$^{-2}$",
     'hfss_ano': "W$\,$m$^{-2}$",
@@ -81,7 +110,16 @@ CLABEL_NICE = {
     'cllvi_ano': "g$\,$m$^{-2}$",
     'clivi_ano': "g$\,$m$^{-2}$",
     'sfcwind_ano': "m$\,$s$^{-1}$",
+    'uas_ano': "m$\,$s$^{-1}$",
+    'vas_ano': "m$\,$s$^{-1}$",
+    'downwind_ano': "m$\,$s$^{-1}$",
+    'crosswind_ano': "m$\,$s$^{-1}$",
     'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
+    'ta_ano': "K",
+    'wa_ano': "mm$\,$s$^{-1}$",
+    'hus_ano': "mg$\,$kg$^{-1}$",
+    'clw_ano': "mg$\,$kg$^{-1}$",
+    'cli_ano': "mg$\,$kg$^{-1}$",
 }
 
 
@@ -322,7 +360,10 @@ def plot_coord_trafo(
     plt.show()
 
 
-def plot_composite(compo_data: xr.DataArray):
+def plot_composite(
+        compo_data: xr.DataArray,
+        sigmask: xr.DataArray | None = None,
+        ) -> None:
     var = compo_data.name
     _, axs = plt.subplots(1, 1, figsize=(4, 3))
     pl1 = axs.pcolormesh(
@@ -332,6 +373,8 @@ def plot_composite(compo_data: xr.DataArray):
         cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
         vmax=COMPO_PLOT_RANGE[var][1],
     )
+    if sigmask is not None: plot_sigmask(axs, sigmask)
+
     _add_grid(
         axs, compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
         )
@@ -347,7 +390,10 @@ def plot_composite(compo_data: xr.DataArray):
     plt.show()
 
 
-def plot_composite_overview(compo_data: xr.DataArray, vars: list):
+def plot_composite_overview(
+        compo_data: xr.Dataset,
+        sigmask: xr.Dataset | None,
+        vars: list):
     import hfplot.figure.figure as hffig
     fig, axs = hffig.init_subfig(
         style=None, asprat=(12.5, 10), nrow=3, ncol=3, sharex=True, sharey=True,
@@ -370,6 +416,7 @@ def plot_composite_overview(compo_data: xr.DataArray, vars: list):
                 cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
                 vmax=COMPO_PLOT_RANGE[var][1],
             )
+        if sigmask is not None: plot_sigmask(axs.ravel()[i], sigmask[var])
         _add_grid(
             axs.ravel()[i],
             compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
@@ -393,6 +440,49 @@ def plot_composite_overview(compo_data: xr.DataArray, vars: list):
     
     plt.tight_layout()
     return fig
+
+
+# ------------------------------------------------------------------------------
+# Composite crosssections
+# -----------------------
+def plot_compo_crosssection(
+        compo_data: xr.Dataset,
+        vars: list,
+        sigmask: xr.Dataset | None = None,
+        ysel: int | slice | None = None,
+        ):
+    import hfplot.figure.figure as hffig
+    fig, axs = hffig.init_subfig(
+        style=None, asprat=(9, 6), nrow=2, ncol=2, sharex=True, sharey=True,
+        )
+    for i, var in enumerate(vars):
+        if ysel is not None:
+            plot_data = compo_data.sel(y=ysel).mean(dim='y')
+        else:
+            raise ValueError("Please provide a valid 'ysel'!")
+        pl = axs.ravel()[i].pcolormesh(
+            plot_data['En_rota2_featcen_x'], plot_data['altitude']/1000,
+            plot_data[var].transpose(),
+            cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+            vmax=COMPO_PLOT_RANGE[var][1],
+            )
+        axs.ravel()[i].set_title(
+            COMPO_PLOT_LABEL[var], weight='bold', pad=12, fontsize=11,
+            )
+        cbar_ticks = [
+            COMPO_PLOT_RANGE[var][0], COMPO_PLOT_RANGE[var][0]/2, 0,
+            COMPO_PLOT_RANGE[var][1]/2, COMPO_PLOT_RANGE[var][1], 
+        ]
+        plt.colorbar(
+            pl, ax=axs.ravel()[i], label=CLABEL_NICE[var], extend='both',
+            fraction=0.046, pad=0.05, ticks=cbar_ticks,
+            )
+    hffig.set_label(axs, 'Downwind fractional distance', 'Altitude / km')
+    hffig.set_limit(axs, [-4, 4], [0, 7.5])
+    
+    plt.tight_layout()
+    return fig
+
 
 # ------------------------------------------------------------------------------
 # Helper functions
@@ -450,3 +540,15 @@ def _add_grid(
         y=0, xmin=x_coord.min(), xmax=x_coord.max(), lw=0.8, ls='--',
         color='gray',
         )
+    
+def plot_sigmask(
+        axis: Axes,
+        sigmask: xr.DataArray
+        ) -> None:
+    x2d, y2d = np.meshgrid(
+        sigmask['En_rota2_featcen_x'], sigmask['En_rota2_featcen_y']
+        )
+    axis.scatter(
+        x2d[~sigmask.transpose()], y2d[~sigmask.transpose()],
+        s=5, marker='.', alpha=0.9, color='k', edgecolors='none',
+    )

@@ -12,7 +12,8 @@ KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 # General coordinate functions
 # --------------------------------
 def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
-    coords_orig = dset[['lat', 'lon', 'cell_area']].drop_vars('height_2')
+    if 'height_2' in dset.data_vars: dset = dset.drop_vars('height_2')
+    coords_orig = dset[['lat', 'lon', 'cell_area']]
     coords_orig = coords_orig.assign_coords(
         {'component': ('component', ['lat', 'lon'])}
         )

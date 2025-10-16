@@ -9,7 +9,7 @@ import pycompo.core.utils as pcutil
 
 
 # ------------------------------------------------------------------------------
-# Rempaping to shared composite coordinates
+# Remapping to shared composite coordinates
 # -----------------------------------------
 def get_compo_coords_ds(
         feature_data: list[xr.Dataset],
@@ -25,10 +25,29 @@ def get_compo_coords_ds(
             var
             ) for var in compo_vars
         }
+    feature_compo_data = _check_feature_id_consistency_across_vars(
+        feature_compo_data
+        )
     return xr.merge([feature_compo_data[var] for var in compo_vars])
 
 
 def interpolate2compo_coords(
+        feature_data: list[xr.Dataset],
+        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        var: str,
+        method: str='linear',
+        ):
+    if "height" in feature_data[0][var].dims:
+        return _interpolate2compo_coords_3d(
+            feature_data, compo_target_coords, var, method
+            )
+    else:
+        return _interpolate2compo_coords_2d(
+            feature_data, compo_target_coords, var, method
+            )
+    
+
+def _interpolate2compo_coords_2d(
         feature_data: list[xr.Dataset],
         compo_target_coords: Tuple[np.ndarray, np.ndarray],
         var: str,
@@ -48,8 +67,8 @@ def interpolate2compo_coords(
         try:
             grid_data = griddata(
                 points=(orig_x, orig_y),   # original coords
-                values=orig_data,        # values
-                xi=(compo_X, compo_Y),
+                values=orig_data,          # values
+                xi=(compo_X, compo_Y),     # target coords
                 method=method  # 'linear', 'nearest', or 'cubic'
             )
         except:
@@ -73,6 +92,57 @@ def interpolate2compo_coords(
     )
 
 
+def _interpolate2compo_coords_3d(
+        feature_data: list[xr.Dataset],
+        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        var: str,
+        method: str='linear',
+        ):
+    compo_X, compo_Y = np.meshgrid(
+        compo_target_coords[0], compo_target_coords[1],
+        )
+
+    compo_data = []
+    feature_ids = []
+    for data in feature_data:
+        orig_x = data['En_rota2_featcen_x'].data.ravel()
+        orig_y = data['En_rota2_featcen_y'].data.ravel()
+        orig_height = data['height'].data
+        try:
+            N_height_levels = len(data['height'].values)
+            grid_data = np.empty(
+                (compo_X.shape[0], compo_Y.shape[1], N_height_levels)
+                )
+            for h in range(N_height_levels):
+                orig_data = data[var].isel(height=h).data.ravel()
+                grid_data[:, :, h] = griddata(
+                    points=(orig_x, orig_y),   # original coords
+                    values=orig_data,          # values
+                    xi=(compo_X, compo_Y),     # target coords
+                    method=method  # 'linear', 'nearest', or 'cubic'
+                    )
+        except:
+            continue
+
+        # Don't include features that have NaNs within the remapped target data
+        if not (~np.isnan(grid_data)).all(): continue
+        
+        compo_data.append(grid_data.transpose(1, 0, 2))
+        feature_ids.append(data['feature_id'].values)
+
+    return xr.DataArray(
+        compo_data,
+        coords={
+            'feature_id': ('feature', feature_ids),
+            'En_rota2_featcen_x': ('x', compo_target_coords[0]),
+            'En_rota2_featcen_y': ('y', compo_target_coords[1]),
+            'height': ('height', orig_height),
+            },
+        dims=('feature', 'x', 'y', 'height'),
+        name=var,
+    )
+
+
 def _get_compo_vars(
         feature_var: str,
         study_vars: list[str],
@@ -84,6 +154,37 @@ def _get_compo_vars(
         f"crosswind_{feature_var}_ano_grad",
         ]
     return feature_var_modes + [f"{var}_ano" for var in study_vars]
+
+
+def _check_feature_id_consistency_across_vars(
+        feature_compo_data: dict[str, xr.Dataset]
+        ) -> dict[str, xr.Dataset]:
+    N_features = [data.sizes['feature'] for data in feature_compo_data.values()]
+    while len(set(N_features)) > 1:
+        print("Warning: Different number of features for different variables!")
+        feature_ids = {
+            var: data['feature_id'].values
+            for var, data in feature_compo_data.items()
+            }
+        min_key = min(feature_ids, key=lambda k: len(feature_ids[k]))
+        
+        remove_ids = []
+        for var, ids in feature_ids.items():
+            if var == min_key: continue
+            for id in ids:
+                if id not in feature_ids[min_key]: remove_ids.append(id)
+
+        for id in set(remove_ids):
+            feature_compo_data = {
+                var: data.where(data['feature_id'] != id, drop=True)
+                for var, data in feature_compo_data.items()
+            }
+
+        N_features = [
+            data.sizes['feature'] for data in feature_compo_data.values()
+            ]
+
+    return feature_compo_data
 
 
 # ------------------------------------------------------------------------------
@@ -158,6 +259,10 @@ def adjust_units(
             data_adjusted[var] = data_adjusted[var] * 1e3
         if var in ['sfcwind_conv_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e5
+        if var in ['wa_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e3
+        if var in ['hus_ano', 'clw_ano', 'cli_ano']:
+            data_adjusted[var] = data_adjusted[var] * 1e6
     return data_adjusted
 
 

@@ -7,6 +7,7 @@ from pandas import date_range
 
 import pycompo.core.composite as pccompo
 import pycompo.core.utils as pcutils
+import pycompo.core.significance_testing as pcsig
 
 warnings.filterwarnings(action='ignore')
 
@@ -55,9 +56,14 @@ def main():
     # --------------------------------------
     inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
     alltrops_compo = []
+    alltrops_var = []
+    alltrops_N_features = []
     alltrops_quartile_compo = {var: [] for var in subgroup_vars}
+
     if config['composite']['rainbelt_subsampling']['switch']:
         rainbelt_compo = []
+        rainbelt_var = []
+        rainbelt_N_features = []
         rainbelt_quartile_compo = {var: [] for var in subgroup_vars}
 
     for i in range (len(analysis_times)-1):
@@ -67,7 +73,14 @@ def main():
             f"{pcutils.np_datetime2file_datestr(analysis_times[i+1])}"
         infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
         features_alltrops = xr.open_dataset(infile).compute()
+        compo_vars = [
+            v for v in features_alltrops.data_vars
+            if features_alltrops[v].ndim == 3
+            ]
+    
         alltrops_compo.append(features_alltrops.mean(dim='feature'))
+        alltrops_var.append(features_alltrops.var(dim='feature', ddof=1))
+        alltrops_N_features.append(features_alltrops.sizes['feature'])
         
         # subsample based on BG conditions
         for var in subgroup_vars:
@@ -84,13 +97,15 @@ def main():
                 features_alltrops, rainbelt,
                 )
             rainbelt_compo.append(features_rainbelt.mean(dim='feature'))
+            rainbelt_var.append(features_rainbelt.var(dim='feature', ddof=1))
+            rainbelt_N_features.append(features_rainbelt.sizes['feature'])
             
             # subsample based on BG conditions
             for var in subgroup_vars:
                 rainbelt_quartile_compo[var].append(
                     pccompo.get_quartile_compos_per_ts(
                         features_rainbelt,
-                        feature_props_alltrops_quartiles[var], var,
+                        feature_props_rainbelt_quartiles[var], var,
                         )
                     )
                 
@@ -100,8 +115,21 @@ def main():
     outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
     outpath.mkdir(parents=True, exist_ok=True)
 
-    alltrops_compo = xr.concat(alltrops_compo, dim='month').mean(dim='month')
+    alltrops_compo = xr.concat(alltrops_compo, dim='month')
+    alltrops_var = xr.concat(alltrops_var, dim='month')
+    alltrops_N_features = xr.DataArray(
+        np.array(alltrops_N_features), dims=["month"],
+        )
+    _, alltrops_pvalue = pcsig.yearly_ttest_from_monthly_data(
+        alltrops_compo[compo_vars], alltrops_var[compo_vars],
+        alltrops_N_features,
+        popmean=config['sigtest']['null_hypothesis_popmean'],
+        )
+    outfile = Path(f"{analysis_idf}_pvalue_alltrops_all.nc")
+    alltrops_pvalue.to_netcdf(str(outpath/outfile))
+    
     outfile = Path(f"{analysis_idf}_composite_alltrops_all.nc")
+    alltrops_compo = alltrops_compo.mean(dim='month')
     alltrops_compo.to_netcdf(str(outpath/outfile))
 
     for var in subgroup_vars:
@@ -112,9 +140,21 @@ def main():
         alltrops_quartile_compo[var].to_netcdf(str(outpath/outfile))
             
     if config['composite']['rainbelt_subsampling']['switch']:
-        rainbelt_compo = \
-            xr.concat(rainbelt_compo, dim='month').mean(dim='month')
+        rainbelt_compo = xr.concat(rainbelt_compo, dim='month')
+        rainbelt_var = xr.concat(rainbelt_var, dim='month')
+        rainbelt_N_features = xr.DataArray(
+            np.array(rainbelt_N_features), dims=["month"],
+            )
+        _, rainbelt_pvalue = pcsig.yearly_ttest_from_monthly_data(
+            rainbelt_compo[compo_vars], rainbelt_var[compo_vars], 
+            rainbelt_N_features,
+            popmean=config['sigtest']['null_hypothesis_popmean'],
+            )
+        outfile = Path(f"{analysis_idf}_pvalue_rainbelt_all.nc")
+        rainbelt_pvalue.to_netcdf(str(outpath/outfile))
+        
         outfile = Path(f"{analysis_idf}_composite_rainbelt_all.nc")
+        rainbelt_compo = rainbelt_compo.mean(dim='month')
         rainbelt_compo.to_netcdf(str(outpath/outfile))
         
         for var in subgroup_vars:
