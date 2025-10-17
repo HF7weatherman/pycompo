@@ -7,13 +7,13 @@ def calc_feature_bg_wind(
         feature_props: xr.Dataset,
         feature_centric_data: list[xr.Dataset],
         wind_vars: Tuple[str, str],
-        calc_sfcwind: bool=False,
+        calc_sfcwind: bool=True,
         ) -> xr.Dataset:
     # Calculate mean wind components for cutout region
     for var in wind_vars:
         bg_wind_component = [
-            (data[var] * data['cell_area']/data['cell_area'].sum()).sum().values
-            for data in feature_centric_data
+            (data[f"{var}_bg"] * data['cell_area']/data['cell_area'].sum()).\
+                sum().values for data in feature_centric_data
             ]
         feature_props[f'bg_{var}'] = ('feature', bg_wind_component)
 
