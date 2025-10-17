@@ -16,7 +16,9 @@ def get_compo_coords_ds(
         feature_var: str,
         config: dict,
         ) -> xr.Dataset:
-    compo_vars = _get_compo_vars(feature_var, config['data']['study_vars'])
+    compo_vars = _get_compo_vars(
+        feature_var, config['data']['study_vars'], config['data']['wind_vars']
+        )
     feature_compo_data = {
         var: interpolate2compo_coords(
             feature_data,
@@ -146,6 +148,7 @@ def _interpolate2compo_coords_3d(
 def _get_compo_vars(
         feature_var: str,
         study_vars: list[str],
+        wind_vars: list[str],
         ) -> list[str]:
     feature_var_modes = [
         f"{feature_var}_ano",
@@ -153,7 +156,8 @@ def _get_compo_vars(
         f"downwind_{feature_var}_ano_grad",
         f"crosswind_{feature_var}_ano_grad",
         ]
-    return feature_var_modes + [f"{var}_ano" for var in study_vars]
+    return feature_var_modes + [f"{var}_ano" for var in study_vars] + \
+        [f"{var}_ano" for var in wind_vars]
 
 
 def _check_feature_id_consistency_across_vars(
@@ -203,7 +207,6 @@ def sample_features_geomask(
             ).values:
             keep_idx.append(int(feature['feature_id'].values))
     return features.where(features['feature_id'].isin(keep_idx), drop=True)
-
 
 
 def get_rainbelt(

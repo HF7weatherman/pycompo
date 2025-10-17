@@ -27,11 +27,14 @@ COMPO_PLOT_LABEL = {
     'uas_ano': 'zonal windspeed',
     'vas_ano': 'meridional windspeed',
     'sfcwind_conv_ano': 'surface wind convergence',
+    'ua_ano': "downwind windspeed",
+    'va_ano': "crosswind windspeed",
     'ta_ano': 'temperature',
     'wa_ano': 'vertical velocity',
     'hus_ano': 'specific humidity',
     'clw_ano': 'cloud liquid water',
     'cli_ano': 'cloud ice water',
+    'pfull_ano': 'pressure',
 }
 
 COMPO_PLOT_RANGE = {
@@ -50,17 +53,18 @@ COMPO_PLOT_RANGE = {
     'ps_ano': [-1., 1.],
     'cllvi_ano': [-10, 10],
     'clivi_ano': [-2, 2],
-    'sfcwind_ano': [-0.06, 0.06],
     'uas_ano': [-0.12, 0.12],
     'vas_ano': [-0.12, 0.12],
-    'downwind_ano': [-0.4, 0.4],
-    'crosswind_ano': [-0.12, 0.12],
+    'sfcwind_ano': [-0.06, 0.06],
     'sfcwind_conv_ano': [-1.3, 1.3],
     'ta_ano': [-0.05, 0.05],
+    'ua_ano': [-0.4, 0.4],
+    'va_ano': [-0.4, 0.4],
     'wa_ano': [-2.5, 2.5],
     'hus_ano': [-30., 30.],
     'clw_ano': [-2.5, 2.5],
     'cli_ano': [-2.5, 2.5],
+    'pfull_ano': [-1., 1.],
 }
 
 CLABEL = {
@@ -80,16 +84,17 @@ CLABEL = {
     'cllvi_ano': "cllvi_ano / kg m-2",
     'clivi_ano': "clivi_ano / kg m-2",
     'sfcwind_ano': "sfcwind_ano / m s-1",
+    'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
     'uas_ano': "uas_ano / m s-1",
     'vas_ano': "vas_ano / m s-1",
-    'downwind_ano': "downwind_ano / m s-1",
-    'crosswind_ano': "crosswind_ano / m s-1",
-    'sfcwind_conv_ano': "sfcwind_conv_ano / s-1",
-    'ta_ano': 'ta_ano / K',
+    'ua_ano': "downwind_ano / m s-1",
+    'va_ano': "crosswind_ano / m s-1",
     'wa_ano': 'wa_ano / mm s-1',
+    'ta_ano': 'ta_ano / K',
     'hus_ano': 'hus_ano / mg kg-1',
     'clw_ano': 'cloud liquid water / mg kg-1',
     'cli_ano': 'cloud ice water / mg kg-1',
+    'pfull_ano': "pfull_ano / Pa",
 }
 
 
@@ -110,16 +115,17 @@ CLABEL_NICE = {
     'cllvi_ano': "g$\,$m$^{-2}$",
     'clivi_ano': "g$\,$m$^{-2}$",
     'sfcwind_ano': "m$\,$s$^{-1}$",
+    'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
     'uas_ano': "m$\,$s$^{-1}$",
     'vas_ano': "m$\,$s$^{-1}$",
-    'downwind_ano': "m$\,$s$^{-1}$",
-    'crosswind_ano': "m$\,$s$^{-1}$",
-    'sfcwind_conv_ano': "10$^{-5}\,$s$^{-1}$",
     'ta_ano': "K",
+    'ua_ano': "m$\,$s$^{-1}$",
+    'va_ano': "m$\,$s$^{-1}$",
     'wa_ano': "mm$\,$s$^{-1}$",
     'hus_ano': "mg$\,$kg$^{-1}$",
     'clw_ano': "mg$\,$kg$^{-1}$",
     'cli_ano': "mg$\,$kg$^{-1}$",
+    'pfull_ano': "Pa",
 }
 
 
