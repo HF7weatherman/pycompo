@@ -1,6 +1,7 @@
 import gc
 import numpy as np
 import sys
+import traceback
 import xarray as xr
 import warnings
 from joblib import Parallel, delayed
@@ -13,11 +14,11 @@ import pycompo.core.coord as pccoord
 import pycompo.core.filter as pcfilter
 import pycompo.core.sst_features as pcsst
 import pycompo.core.utils as pcutil
+import pycompo.core.wind as pcwind
 
 from pycompo.core.composite import get_compo_coords_ds
 from pycompo.core.feature_cutout import get_featcen_data_cutouts
 from pycompo.core.ellipse import get_ellipse_params
-from pycompo.core.wind import calc_feature_bg_wind, add_wind_grads
 
 warnings.filterwarnings(action='ignore')
 
@@ -82,7 +83,8 @@ def main():
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation
-        filter_vars = [feature_var] + config['data']['study_vars']
+        filter_vars = [feature_var] + config['data']['study_vars'] + \
+            config['data']['wind_vars']
         dset_filter = pcfilter.get_gaussian_filter_bg_ano(
             dset[filter_vars], **config['filter']
             )
@@ -100,7 +102,7 @@ def main():
         # ---------------------------------
         # extract anomaly features per timestep
         features = Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
-            delayed(process_one_timestep)(dset, time, config)
+            delayed(process_one_timestep_safe)(dset, time, config)
             for time in dset['time']
             )
         
@@ -125,7 +127,25 @@ def main():
         if config['test']: break
 
 
-def process_one_timestep(dset, time, config):
+def process_one_timestep_safe(
+        dset: xr.Dataset,
+        time: np.datetime64,
+        config: dict,
+        ) -> xr.Dataset:
+    try:
+        return process_one_timestep(dset, time, config)
+    except Exception as e:
+        error_time = time.values if hasattr(time, 'values') else time
+        print(f"Error at time={error_time}: {e}", file=sys.stderr, flush=True)
+        traceback.print_exc()
+        raise
+
+
+def process_one_timestep(
+        dset: xr.Dataset,
+        time: np.datetime64,
+        config: dict,
+        ) -> xr.Dataset:
     data = dset.sel(time=time)
     feature_var = config['data']['feature_var']
     data[f"{feature_var}_feature"], feature_props = pcsst.extract_sst_features(
@@ -134,7 +154,7 @@ def process_one_timestep(dset, time, config):
     data, feature_props, feature_data = get_featcen_data_cutouts(
         data, feature_props, feature_var, config['cutout']['search_RadRatio'],
         )
-    feature_props = calc_feature_bg_wind(
+    feature_props = pcwind.calc_feature_bg_wind(
         feature_props, feature_data, config['data']['wind_vars'],
         calc_sfcwind=True,
         )
@@ -145,9 +165,16 @@ def process_one_timestep(dset, time, config):
     feature_data = pccoord.add_featcen_coords(
         orig_coords, feature_data, feature_props, feature_ellipse,
         )
-    feature_data = add_wind_grads(feature_data, feature_props, feature_var)
+    feature_data = pcwind.add_wind_grads(
+        feature_data, feature_props, feature_var,
+        )
+    feature_data = pcwind.add_rotate_winds(feature_data, feature_props)
+
+    print_time = time.values if hasattr(time, 'values') else time
+    print(f"{print_time}: {feature_data[0].data_vars}",
+          file=sys.stderr, flush=True)
     
-    # remapping to composite coordinate and creatign consistent output array
+    # remapping to composite coordinate and creating consistent output array
     feature_compo_data = get_compo_coords_ds(feature_data, feature_var, config)
     feature_props = feature_props.where(
         feature_props['feature_id'].isin(feature_compo_data['feature_id']),

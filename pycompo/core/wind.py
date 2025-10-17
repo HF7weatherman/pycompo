@@ -51,7 +51,6 @@ def add_wind_grads(
 def add_rotate_winds(
         feature_data_in: list,
         feature_props: xr.Dataset,
-        drop_raw_wind: bool=True,
         ) -> list:
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
@@ -59,14 +58,13 @@ def add_rotate_winds(
         data = feature_data_in[idx]
         
         if 'uas_ano' and 'vas_ano' in data.data_vars:
-            rota_winds = _rotate_winds(props, data, ('uas_ano', 'vas_ano'))
-            data[f'downwinds_ano'] = rota_winds[0]
-            data[f'crosswinds_ano'] = rota_winds[1]
+            data['uas_ano'], data['vas_ano'] = _rotate_winds(
+                props, data, ('uas_ano', 'vas_ano'),
+                )
         if 'ua_ano' and 'va_ano' in data.data_vars:
-            rota_winds = _rotate_winds(props, data, ('ua_ano', 'va_ano'))
-            data[f'downwind_ano'] = rota_winds[0]
-            data[f'crosswind_ano'] = rota_winds[1]
-            if drop_raw_wind: data = data.drop(['ua_ano', 'va_ano'])
+            data['ua_ano'], data['va_ano'] = _rotate_winds(
+                props, data, ('ua_ano', 'va_ano'),
+                )
             
         feature_data_out.append(data)
 
