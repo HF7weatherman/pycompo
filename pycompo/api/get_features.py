@@ -85,17 +85,16 @@ def main():
         # scale separation
         filter_vars = [feature_var] + config['data']['study_vars'] + \
             config['data']['wind_vars']
-        dset_filter = pcfilter.get_gaussian_filter_bg_ano(
+        dset = pcfilter.get_gaussian_filter_bg_ano(
             dset[filter_vars], **config['filter']
             )
-        dset_filter = pccoord.calc_sphere_gradient_laplacian(
-            dset_filter, f'{feature_var}_ano',
-            )
-        
         dset = xr.merge([
-            dset_filter[[f"{var}_bg" for var in config['data']['wind_vars']]],
-            dset_filter[[f"{var}_ano" for var in filter_vars]],
+            dset[[f"{var}_bg" for var in config['data']['wind_vars']]],
+            dset[[f"{var}_ano" for var in filter_vars]],
             ])
+        dset = pccoord.calc_sphere_gradient_laplacian(
+            dset, f'{feature_var}_ano',
+            )
         dset['cell_area'] = get_cells_area(dset)
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
