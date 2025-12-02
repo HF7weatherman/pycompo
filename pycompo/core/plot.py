@@ -58,8 +58,8 @@ COMPO_PLOT_RANGE = {
     'sfcwind_ano': [-0.06, 0.06],
     'sfcwind_conv_ano': [-1.3, 1.3],
     'ta_ano': [-0.05, 0.05],
-    'ua_ano': [-0.4, 0.4],
-    'va_ano': [-0.4, 0.4],
+    'ua_ano': [-0.1, 0.1],
+    'va_ano': [-0.1, 0.1],
     'wa_ano': [-2.5, 2.5],
     'hus_ano': [-30., 30.],
     'clw_ano': [-2.5, 2.5],
@@ -402,7 +402,7 @@ def plot_composite_overview(
         vars: list):
     import hfplot.figure.figure as hffig
     fig, axs = hffig.init_subfig(
-        style=None, asprat=(12.5, 10), nrow=3, ncol=3, sharex=True, sharey=True,
+        style=None, asprat=(12.5, 16), nrow=5, ncol=3, sharex=True, sharey=True,
         )
 
     for i, var in enumerate(vars):
@@ -459,7 +459,7 @@ def plot_compo_crosssection(
         ):
     import hfplot.figure.figure as hffig
     fig, axs = hffig.init_subfig(
-        style=None, asprat=(9, 6), nrow=2, ncol=2, sharex=True, sharey=True,
+        style=None, asprat=(9, 9), nrow=3, ncol=2, sharex=True, sharey=True,
         )
     for i, var in enumerate(vars):
         if ysel is not None:
