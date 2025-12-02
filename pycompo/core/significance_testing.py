@@ -302,11 +302,18 @@ def _manual_t_test(
         }
     p_value = xr.Dataset(
         data_vars = {
-            var: (('x', 'y'), data) for var, data in p_value.items()
+            var: (('x', 'y'), data) if data.ndim == 2 else 
+            (('x', 'y', 'height'), data) for var, data in p_value.items()
             },
         coords = {
-            'En_rota2_featcen_x': t_stat['En_rota2_featcen_x'],
-            'En_rota2_featcen_y': t_stat['En_rota2_featcen_y']
+            **{
+                'En_rota2_featcen_x': t_stat['En_rota2_featcen_x'],
+                'En_rota2_featcen_y': t_stat['En_rota2_featcen_y']
+                },
+            **(
+                {'height': t_stat['height']} if
+                any(d.ndim == 3 for d in p_value.values()) else {}
+                )
             }
         )
     return t_stat, p_value
