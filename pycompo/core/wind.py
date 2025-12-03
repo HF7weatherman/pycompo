@@ -52,19 +52,19 @@ def add_rotate_winds(
         feature_data_in: list,
         feature_props: xr.Dataset,
         ) -> list:
+    pairs = [
+            ("uas_ano", "vas_ano"),
+            ("uas", "vas"),
+            ("ua_ano", "va_ano"),
+            ("ua", "va"),
+        ]
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         props = feature_props.isel(feature=idx)
         data = feature_data_in[idx]
-        
-        if 'uas_ano' and 'vas_ano' in data.data_vars:
-            data['uas_ano'], data['vas_ano'] = _rotate_winds(
-                props, data, ('uas_ano', 'vas_ano'),
-                )
-        if 'ua_ano' and 'va_ano' in data.data_vars:
-            data['ua_ano'], data['va_ano'] = _rotate_winds(
-                props, data, ('ua_ano', 'va_ano'),
-                )
+        for u, v in pairs:
+            if u in data.data_vars and v in data.data_vars:
+                data[u], data[v] = _rotate_winds(props, data, (u, v))
             
         feature_data_out.append(data)
 
