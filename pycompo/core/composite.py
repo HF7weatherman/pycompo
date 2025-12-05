@@ -248,18 +248,25 @@ def adjust_units(
     ) -> xr.Dataset:
     data_adjusted = data.copy()
     for var in vars:
-        if var in ['downwind_ts_ano_grad', 'crosswind_ts_ano_grad']:
+        if var in [
+            'downwind_ts_ano_grad', 'crosswind_ts_ano_grad',
+            'downwind_ts_grad', 'crosswind_ts_grad',
+            ]:
             data_adjusted[var] = data_adjusted[var] * 1e5
-        if var in ['ts_ano_laplacian']:
+        if var in ['ts_laplacian', 'ts_ano_laplacian']:
             data_adjusted[var] = data_adjusted[var] * 1e10
         if var in ['cllvi_ano', 'clivi_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
-        if var in ['sfcwind_conv_ano']:
+        if var in ['sfcwind_conv', 'sfcwind_conv_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e5
-        if var in ['wa_ano']:
+        if var in ['wa', 'wa_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
-        if var in ['hus_ano', 'clw_ano', 'cli_ano']:
+        if var in ['hus', 'clw', 'cli', 'hus_ano', 'clw_ano', 'cli_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e6
+        if var in ['hfls', 'hfss']:
+            data_adjusted[var] = data_adjusted[var] * -1
+        if var in ['ps']:
+            data_adjusted[var] = data_adjusted[var] * 0.01
     return data_adjusted
 
 
