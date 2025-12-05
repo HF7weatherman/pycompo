@@ -33,16 +33,16 @@ def calc_feature_bg_wind(
 def add_wind_grads(
         feature_data_in: list,
         feature_props: xr.Dataset,
-        feature_var: str,
+        grad_var: str,
         ) -> list:
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         props = feature_props.isel(feature=idx)
         data = feature_data_in[idx]
-        wind_grads = _calc_wind_grads(props, data, feature_var)
+        wind_grads = _calc_wind_grads(props, data, grad_var)
 
-        data[f'downwind_{feature_var}_ano_grad'] = wind_grads[0]
-        data[f'crosswind_{feature_var}_ano_grad'] = wind_grads[1]
+        data[f'downwind_{grad_var}_grad'] = wind_grads[0]
+        data[f'crosswind_{grad_var}_grad'] = wind_grads[1]
         feature_data_out.append(data)
 
     return feature_data_out
@@ -123,11 +123,11 @@ def _calc_wind_grads(
     cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']
     sin_winddir = feature_props['bg_vas'] / feature_props['bg_sfcwind']
     downwind_sst_grad = \
-        cos_winddir * feature_data[f'd{grad_var}_ano_dx'] + \
-        sin_winddir * feature_data[f'd{grad_var}_ano_dy']
+        cos_winddir * feature_data[f'd{grad_var}_dx'] + \
+        sin_winddir * feature_data[f'd{grad_var}_dy']
     crosswind_sst_grad = \
-        -sin_winddir * feature_data[f'd{grad_var}_ano_dx'] + \
-         cos_winddir * feature_data[f'd{grad_var}_ano_dy']
+        -sin_winddir * feature_data[f'd{grad_var}_dx'] + \
+         cos_winddir * feature_data[f'd{grad_var}_dy']
     
     return (downwind_sst_grad, crosswind_sst_grad)
 

@@ -165,9 +165,11 @@ def process_one_timestep(
     feature_data = pccoord.add_featcen_coords(
         orig_coords, feature_data, feature_props, feature_ellipse,
         )
-    feature_data = pcwind.add_wind_grads(
-        feature_data, feature_props, feature_var,
-        )
+    if config['composite']['type'] == 'anomaly':
+        grad_var = f"{feature_var}_ano"
+    elif config['composite']['type'] == 'absolute':
+        grad_var = feature_var
+    feature_data = pcwind.add_wind_grads(feature_data, feature_props, grad_var)
     feature_data = pcwind.add_rotate_winds(feature_data, feature_props)
 
     print_time = time.values if hasattr(time, 'values') else time
