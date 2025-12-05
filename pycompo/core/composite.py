@@ -13,12 +13,10 @@ import pycompo.core.utils as pcutil
 # -----------------------------------------
 def get_compo_coords_ds(
         feature_data: list[xr.Dataset],
-        feature_var: str,
         config: dict,
         ) -> xr.Dataset:
-    compo_vars = _get_compo_vars(
-        feature_var, config['data']['study_vars'], config['data']['wind_vars']
-        )
+    compo_vars = _get_compo_vars(feature_data[0].data_vars)
+
     feature_compo_data = {
         var: interpolate2compo_coords(
             feature_data,
@@ -146,19 +144,15 @@ def _interpolate2compo_coords_3d(
 
 
 def _get_compo_vars(
-        feature_var: str,
-        study_vars: list[str],
-        wind_vars: list[str],
+        data_vars: list[str],
         ) -> list[str]:
-    feature_var_modes = [
-        f"{feature_var}_ano",
-        f"{feature_var}_ano_laplacian",
-        f"downwind_{feature_var}_ano_grad",
-        f"crosswind_{feature_var}_ano_grad",
-        ]
-    return feature_var_modes + [f"{var}_ano" for var in study_vars] + \
-        [f"{var}_ano" for var in wind_vars]
-
+    non_keep_list = [
+        'cell_area', 'ts_feature', 'featcen_x', 'featcen_y', 'rota_featcen_x',
+        'rota_featcen_y', 'En_rota_featcen_x', 'En_rota_featcen_y',
+        'En_rota2_featcen_x', 'En_rota2_featcen_y',
+    ]
+    return [v for v in data_vars if v not in non_keep_list]
+    
 
 def _check_feature_id_consistency_across_vars(
         feature_compo_data: dict[str, xr.Dataset]

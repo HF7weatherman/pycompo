@@ -175,7 +175,7 @@ def process_one_timestep(
           file=sys.stderr, flush=True)
     
     # remapping to composite coordinate and creating consistent output array
-    feature_compo_data = get_compo_coords_ds(feature_data, feature_var, config)
+    feature_compo_data = get_compo_coords_ds(feature_data, config)
     feature_props = feature_props.where(
         feature_props['feature_id'].isin(feature_compo_data['feature_id']),
         drop=True,
