@@ -83,18 +83,36 @@ def main():
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation
-        filter_vars = [feature_var] + config['data']['study_vars'] + \
-            config['data']['wind_vars']
-        dset = pcfilter.get_gaussian_filter_bg_ano(
+        filter_vars = [feature_var] + config['data']['wind_vars']
+        if config['composite']['type'] == 'anomaly':
+            filter_vars += config['data']['study_vars']
+        dset_filter = pcfilter.get_gaussian_filter_bg_ano(
             dset[filter_vars], **config['filter']
             )
-        dset = xr.merge([
-            dset[[f"{var}_bg" for var in config['data']['wind_vars']]],
-            dset[[f"{var}_ano" for var in filter_vars]],
-            ])
-        dset = pccoord.calc_sphere_gradient_laplacian(
-            dset, f'{feature_var}_ano',
-            )
+
+        if config['composite']['type'] == 'anomaly':
+            merge_dsets = [
+                dset_filter[
+                    [f"{var}_bg" for var in config['data']['wind_vars']]
+                    ],
+                dset_filter[
+                    [f"{var}_ano" for var in filter_vars]
+                    ],
+                ]
+        elif config['composite']['type'] == 'absolute':
+            merge_dsets = [
+                dset_filter[
+                    [f"{var}_bg" for var in config['data']['wind_vars']]
+                    ],
+                dset_filter[f"{feature_var}_ano"],
+                dset,
+                ]
+        dset = xr.merge(merge_dsets)
+
+        if config['composite']['type'] == 'anomaly':
+            dset = pccoord.calc_sphere_gradient_laplacian(dset, f'{feature_var}_ano')
+        elif config['composite']['type'] == 'absolute':
+            dset = pccoord.calc_sphere_gradient_laplacian(dset, f'{feature_var}')
         dset['cell_area'] = get_cells_area(dset)
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
