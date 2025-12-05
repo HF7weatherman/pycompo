@@ -85,3 +85,10 @@ def add_metric_altitude(
             f"Conversion to metric altitude is currently not implemented " +
             f"for experiment {config['exp']}!"
             )
+    
+
+def get_subgroup_vars_dict(config: dict) -> dict:
+    merged = {}
+    for d in config['composite']['subgroup_vars']:
+        merged.update(d)
+    return merged
