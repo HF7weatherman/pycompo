@@ -72,7 +72,8 @@ filter:
 
 # SST-Feature Detection Settings
 feature:
-  threshold: 0.2
+  type: warm # options: warm, cold
+  threshold: 0.2 # in K, negative for cold features, positive for warm features
   connectivity: 8
   min_area: 400.0
   property_list:
@@ -87,9 +88,7 @@ cutout:
 
 # Composite Settings
 composite:
-  type: absolute # options: anomaly, absolute
-  anomaly_modes:
-    - warm
+  type: anomaly # options: anomaly, absolute
   compo_x:
     - -4.0
     - 4.1

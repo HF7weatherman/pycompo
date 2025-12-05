@@ -4,7 +4,6 @@ from skimage.measure import regionprops
 from typing import Tuple
 
 from pyorg.core.geometry import get_cells_area
-from pyorg.core.convection import convective_regions
 from pyorg.core.clusters import get_clusters, get_clusters_areas
 
 
@@ -13,13 +12,14 @@ from pyorg.core.clusters import get_clusters, get_clusters_areas
 # --------------------------------------------------
 def extract_sst_features(
         sst_dset: xr.DataArray,
+        type: str,
         threshold: float,
         connectivity: int,
         min_area: float,
         property_list: list[str],
         ) -> Tuple[xr.DataArray, xr.Dataset]:
     feature_map, basic_feature_props = _get_sst_features(
-        sst_dset, threshold=threshold, connectivity=connectivity,
+        sst_dset, type=type, threshold=threshold, connectivity=connectivity,
         )
     advanced_feature_props = _get_feature_props_idx_space(
         feature_map, property_list,
@@ -38,6 +38,7 @@ def extract_sst_features(
 
 def _get_sst_features(
         data: xr.DataArray,
+        type: str,
         threshold: float,
         connectivity: int,
         ) -> xr.DataArray:
@@ -48,11 +49,19 @@ def _get_sst_features(
     total_features = 0
     cell_area = get_cells_area(data)
     
-    def _get_sst_features_single_timestep(data, threshold):
+    def _get_sst_features_single_timestep(data, type, threshold):
         nonlocal total_features
         
         # Create threshold-based binary map and extract clusters from it
-        threshold, regions = convective_regions(data, threshold=threshold)
+        if type == "warm":
+            regions = data > threshold
+        elif type == "cold":
+            regions = data < threshold
+        else:
+            raise ValueError(
+                "Please provide a valid feature type! Only 'warm' and " +
+                "'cold' are supported."
+                )
         features, features_number = get_clusters(
             regions, periodic_longitude_clustering=True,
             remove_edge_clusters=True, structure=structure_element,
@@ -77,13 +86,13 @@ def _get_sst_features(
     if "time" in data.dims and data.sizes["time"] > 1:
         for time in data.time:
             feature_radii = _get_sst_features_single_timestep(
-                data.sel(time=time), threshold
+                data.sel(time=time), type, threshold,
                 )
             times_list = times_list + [time.values]*len(feature_radii)
             features = xr.concat(features_list, "time")
 
     else: 
-        feature_radii = _get_sst_features_single_timestep(data, threshold)
+        feature_radii = _get_sst_features_single_timestep(data, type, threshold)
         times_list = times_list + [data.time.values]*len(feature_radii)
         features = xr.concat(features_list, "time")
     
