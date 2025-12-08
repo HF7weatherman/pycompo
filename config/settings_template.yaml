@@ -10,23 +10,23 @@ data:
     - vas
   study_vars:
     - pr
-    - prw
-    - hfls
-    - hfss
-    - rlut
-    - cllvi
-    - clivi
-    - sfcwind
-    - sfcwind_conv
-    - ps
-    - ua
-    - va
-    - wa
-    - ta
-    - hus
-    - cli
-    - clw
-  spd: 8
+    #- prw
+    #- hfls
+    #- hfss
+    #- rlut
+    #- cllvi
+    #- clivi
+    #- sfcwind
+    #- sfcwind_conv
+    #- ps
+    #- ua
+    #- va
+    #- wa
+    #- ta
+    #- hus
+    #- cli
+    #- clw
+  spd: 1
   inpaths:
     ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
     uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
