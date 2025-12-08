@@ -92,8 +92,8 @@ def _get_sst_features(
             features = xr.concat(features_list, "time")
 
     else:
-        feature_radii = _get_sst_features_single_timestep(data.squeeze(), type, threshold)
-        times_list = times_list + [data.time.values[0]]*len(feature_radii)
+        feature_radii = _get_sst_features_single_timestep(data, type, threshold)
+        times_list = times_list + [data.time.values]*len(feature_radii)
         features = xr.concat(features_list, "time")
     
     feature_props = xr.Dataset(
