@@ -26,7 +26,7 @@ data:
     #- hus
     #- cli
     #- clw
-  spd: 8
+  spd: 1
   inpaths:
     ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
     uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
