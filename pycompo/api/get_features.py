@@ -79,7 +79,10 @@ def main():
                 dset[feature_var] - rolling_climatology[feature_var]
             feature_var = f'{feature_var}_detrend'
             varlist = [feature_var] + config['data']['wind_vars']
-
+        
+        dset = pcutil.add_timelag_idx_space(
+            dset, feature_var, config['data']['timelag_idx'],
+            )
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation

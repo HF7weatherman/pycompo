@@ -10,7 +10,7 @@ data:
     - vas
   study_vars:
     - pr
-    #- prw
+    - prw
     #- hfls
     #- hfss
     #- rlut
@@ -18,7 +18,7 @@ data:
     #- clivi
     #- sfcwind
     #- sfcwind_conv
-    #- ps
+    - ps
     #- ua
     #- va
     #- wa
@@ -26,7 +26,6 @@ data:
     #- hus
     #- cli
     #- clw
-  spd: 1
   inpaths:
     ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
     uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
@@ -52,6 +51,8 @@ data:
   analysis_time:
     - 2020-08-01T00:00:00Z
     - 2020-09-01T00:00:00Z
+  spd: 1
+  timelag_idx: 0
 
 # Basic Analysis Settings
 lat_range:

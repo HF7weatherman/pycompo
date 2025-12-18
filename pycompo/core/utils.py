@@ -24,29 +24,6 @@ def roll_avg(
     return dset.rolling(time=window_size, center=True).mean()
 
 
-def circ_roll_avg(
-        dset: xr.DataArray | xr.Dataset,
-        clim_avg_days: int | float,
-        spd: int,
-        ) -> xr.DataArray | xr.Dataset:
-    window_size = int(clim_avg_days*spd + 1)
-
-    # Build pseudo-circular extended array
-    extend_len = (window_size - 1) // 2
-    extended = xr.concat(
-        [dset.isel(time=slice(-extend_len, None)),
-         dset,
-         dset.isel(time=slice(0, extend_len))
-         ], dim='time'
-         )
-    
-    rolling_avg = extended.rolling(time=window_size, center=True).mean()
-    result = rolling_avg.isel(
-        time=slice(extend_len, extend_len + dset.sizes['time'])
-        )
-    return result
-
-
 def round_away_from_zero(x: float) -> int:
     return int(math.copysign(math.ceil(abs(x)), x))
 
@@ -92,3 +69,51 @@ def get_subgroup_vars_dict(config: dict) -> dict:
     for d in config['composite']['subgroup_vars']:
         merged.update(d)
     return merged
+
+
+# DATA PREPROCESSING UTILITIES
+# ----------------------------
+def circ_roll_avg(
+        dset: xr.DataArray | xr.Dataset,
+        clim_avg_days: int | float,
+        spd: int,
+        ) -> xr.DataArray | xr.Dataset:
+    window_size = int(clim_avg_days*spd + 1)
+
+    # Build pseudo-circular extended array
+    extend_len = (window_size - 1) // 2
+    extended = xr.concat(
+        [dset.isel(time=slice(-extend_len, None)),
+         dset,
+         dset.isel(time=slice(0, extend_len))
+         ], dim='time'
+         )
+    
+    rolling_avg = extended.rolling(time=window_size, center=True).mean()
+    result = rolling_avg.isel(
+        time=slice(extend_len, extend_len + dset.sizes['time'])
+        )
+    return result
+
+
+def add_timelag_idx_space(
+        dset: xr.Dataset,
+        feature_var: str,
+        timelag_idx: int=0,
+        ) -> xr.Dataset:
+    # Input checks
+    if 'time' not in dset.dims:
+        raise ValueError("Dataset must have 'time' dimension.")
+    if timelag_idx < 0:
+        raise ValueError("time_lag_idx must be a non-negative integer.")
+    
+    # Apply time lag
+    if timelag_idx == 0:
+        return dset
+    else:
+        dset_1 = dset[feature_var].isel(time=slice(0, -timelag_idx))
+        dset_2 = dset.drop_vars(feature_var).isel(
+            time=slice(timelag_idx, None)
+            )
+        dset_2['time'] = dset_1['time']
+        return xr.merge([dset_1, dset_2])
