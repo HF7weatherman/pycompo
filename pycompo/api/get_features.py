@@ -99,6 +99,7 @@ def main():
                     [f"{var}_ano" for var in filter_vars]
                     ],
                 ]
+            grad_var = f"{feature_var}_ano"
         elif config['composite']['type'] == 'absolute':
             merge_dsets = [
                 dset_filter[
@@ -107,12 +108,10 @@ def main():
                 dset_filter[f"{feature_var}_ano"],
                 dset,
                 ]
-        dset = xr.merge(merge_dsets)
+            grad_var = feature_var
 
-        if config['composite']['type'] == 'anomaly':
-            dset = pccoord.calc_sphere_gradient_laplacian(dset, f'{feature_var}_ano')
-        elif config['composite']['type'] == 'absolute':
-            dset = pccoord.calc_sphere_gradient_laplacian(dset, f'{feature_var}')
+        dset = xr.merge(merge_dsets)
+        dset = pccoord.calc_sphere_gradient_laplacian(dset, grad_var)
         dset['cell_area'] = get_cells_area(dset)
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
 
@@ -167,6 +166,11 @@ def process_one_timestep(
         ) -> xr.Dataset:
     data = dset.sel(time=time)
     feature_var = config['data']['feature_var']
+    if config['composite']['type'] == 'anomaly':
+        grad_var = f"{feature_var}_ano"
+    elif config['composite']['type'] == 'absolute':
+        grad_var = feature_var
+
     data[f"{feature_var}_feature"], feature_props = pcsst.extract_sst_features(
         data[f"{feature_var}_ano"], **config['feature']
         )
@@ -183,10 +187,6 @@ def process_one_timestep(
     feature_data = pccoord.add_featcen_coords(
         orig_coords, feature_data, feature_props, feature_ellipse,
         )
-    if config['composite']['type'] == 'anomaly':
-        grad_var = f"{feature_var}_ano"
-    elif config['composite']['type'] == 'absolute':
-        grad_var = feature_var
     feature_data = pcwind.add_wind_grads(feature_data, feature_props, grad_var)
     feature_data = pcwind.add_rotate_winds(feature_data, feature_props)
 
