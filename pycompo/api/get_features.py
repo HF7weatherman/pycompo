@@ -36,6 +36,9 @@ def main():
             )
         ]
     analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
+    feature_var = config['data']['feature_var']
+    varlist = [feature_var] + config['data']['wind_vars'] + \
+        config['data']['study_vars']
     
     for i in range (len(analysis_times)-1):
         file_time_string = \
@@ -45,9 +48,6 @@ def main():
         # ----------------------------------------------------------------------
         # read in data
         # ------------
-        feature_var = config['data']['feature_var']
-        varlist = [feature_var] + config['data']['wind_vars'] + \
-            config['data']['study_vars']
         infiles = []
         for var in varlist:
             inpath = Path(config['data']['inpaths'][var])
