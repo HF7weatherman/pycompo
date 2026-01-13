@@ -61,24 +61,10 @@ def main():
         # --------------
         # detrending
         if config['detrend']['switch']:
-            # Read in data for building the climatology
-            inpath = Path(config['data']['inpaths'][feature_var])
-            in_pattern = f"{config['exp']}_tropical_{feature_var}_*.nc"
-            infiles = sorted([str(f) for f in inpath.rglob(in_pattern)])
-            dset_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()
-            
-            # Detrend dataset with multiyear monthly climatology
-            climatology = pcfilter.build_hourly_climatology(
-                dset_clim, clim_baseyear=str(config['detrend']['clim_baseyear'])
-                )
-            rolling_climatology = pcutil.circ_roll_avg(
-                climatology, config['detrend']['clim_avg_days'],
-                config['data']['spd'],
-                )
-            dset[f'{feature_var}_detrend'] = \
-                dset[feature_var] - rolling_climatology[feature_var]
-            feature_var = f'{feature_var}_detrend'
-            varlist = [feature_var] + config['data']['wind_vars']
+            dset, feature_var, varlist = \
+                pcfilter.detrend_with_hourly_climatology(
+                    dset, feature_var, config,
+                    )
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation

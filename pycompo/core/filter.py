@@ -2,11 +2,39 @@ import numpy as np
 import xarray as xr
 from scipy.ndimage import gaussian_filter
 from typing import Tuple
+from pathlib import Path
 
+from pycompo.core.utils import circ_roll_avg
 
 # ------------------------------------------------------------------------------
-# Functions for building a climatology
-# ------------------------------------
+# Functions for building a climatology and using it to detrend a timeseries
+# -------------------------------------------------------------------------
+def detrend_with_hourly_climatology(
+    dset: xr.DataArray | xr.Dataset,
+    feature_var: str,
+    config: dict,
+    ) -> Tuple[xr.DataArray | xr.Dataset, str, list]:
+    # Read in data for building the climatology
+    inpath = Path(config['data']['inpaths'][feature_var])
+    in_pattern = f"{config['exp']}_tropical_{feature_var}_*.nc"
+    infiles = sorted([str(f) for f in inpath.rglob(in_pattern)])
+    dset_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()
+    
+    # Detrend dataset with multiyear monthly climatology
+    climatology = build_hourly_climatology(
+        dset_clim, clim_baseyear=str(config['detrend']['clim_baseyear'])
+        )
+    rolling_climatology = circ_roll_avg(
+        climatology, config['detrend']['clim_avg_days'], config['data']['spd'],
+        )
+    dset[f'{feature_var}_detrend'] = \
+        dset[feature_var] - rolling_climatology[feature_var]
+    feature_var = f'{feature_var}_detrend'
+    varlist = [feature_var] + config['data']['wind_vars'] + \
+        config['data']['study_vars']
+    return dset, feature_var, varlist
+
+
 def build_hourly_climatology(
         dset: xr.DataArray | xr.Dataset,
         clim_baseyear: str,
