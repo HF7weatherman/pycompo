@@ -1,5 +1,5 @@
 exp: ngc5004
-pycompo_name: pc01
+pycompo_name: pc_template
 test: True
 
 # Basic Data Settings
