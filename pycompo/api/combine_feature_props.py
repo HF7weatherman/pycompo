@@ -17,7 +17,7 @@ warnings.filterwarnings(action='ignore')
 keep_props = [
     'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind', 'bg_sfcwind_dir',
     'ts_ano_mean', 'axis_major_length_idx', 'axis_minor_length_idx',
-    'orientation_idx',
+    'orientation_idx', 'centroid_sphere',
     ]
 
 # read in configuration file

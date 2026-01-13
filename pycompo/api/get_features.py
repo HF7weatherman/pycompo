@@ -168,6 +168,7 @@ def process_one_timestep(
         config: dict,
         ) -> xr.Dataset:
     data = dset.sel(time=time)
+    orig_coords = pccoord.get_coords_orig(data.drop('time'))
     feature_var = config['data']['feature_var']
     if config['composite']['type'] == 'anomaly':
         grad_var = f"{feature_var}_ano"
@@ -183,9 +184,11 @@ def process_one_timestep(
     feature_props = pcwind.calc_feature_bg_wind(
         feature_props, feature_data, config['data']['wind_vars'],
         )
+    feature_props['centroid_sphere'] = pccoord._get_centroid_coords(
+        orig_coords, feature_props['centroid_idx'],
+        )
     
     # coordinate transformation
-    orig_coords = pccoord.get_coords_orig(data)
     feature_ellipse = get_ellipse_params(feature_props, orig_coords)
     feature_data = pccoord.add_featcen_coords(
         orig_coords, feature_data, feature_props, feature_ellipse,
