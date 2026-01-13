@@ -79,10 +79,6 @@ def main():
                 dset[feature_var] - rolling_climatology[feature_var]
             feature_var = f'{feature_var}_detrend'
             varlist = [feature_var] + config['data']['wind_vars']
-        
-        dset = pcutil.add_timelag_idx_space(
-            dset, feature_var, config['data']['timelag_idx'],
-            )
         for var in varlist: dset[var] = dset[var].compute()
         
         # scale separation
@@ -112,8 +108,12 @@ def main():
                 dset,
                 ]
             grad_var = feature_var
-
         dset = xr.merge(merge_dsets)
+
+        # add timelag and calculate gradients
+        dset = pcutil.add_timelag_idx_space(
+            dset, f"{feature_var}_ano", config['data']['timelag_idx'],
+            )
         dset = pccoord.calc_sphere_gradient_laplacian(dset, grad_var)
         dset['cell_area'] = get_cells_area(dset)
         dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
@@ -175,7 +175,7 @@ def process_one_timestep(
         grad_var = feature_var
 
     data[f"{feature_var}_feature"], feature_props = pcsst.extract_sst_features(
-        data[f"{feature_var}_ano"], **config['feature']
+        data[f"{feature_var}_ano_detect"], **config['feature']
         )
     data, feature_props, feature_data = get_featcen_data_cutouts(
         data, feature_props, feature_var, config['cutout']['search_RadRatio'],

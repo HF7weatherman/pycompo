@@ -108,11 +108,12 @@ def add_timelag_idx_space(
         raise ValueError("time_lag_idx must be a non-negative integer.")
     
     # Apply time lag
+    dset[f'{feature_var}_detect'] = dset[f'{feature_var}'].copy()
     if timelag_idx == 0:
         return dset
     else:
-        dset_1 = dset[feature_var].isel(time=slice(0, -timelag_idx))
-        dset_2 = dset.drop_vars(feature_var).isel(
+        dset_1 = dset[f'{feature_var}_detect'].isel(time=slice(0, -timelag_idx))
+        dset_2 = dset.drop_vars(f'{feature_var}_detect').isel(
             time=slice(timelag_idx, None)
             )
         dset_2['time'] = dset_1['time']
