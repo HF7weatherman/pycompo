@@ -40,39 +40,42 @@ def main():
     varlist = [feature_var] + config['data']['wind_vars'] + \
         config['data']['study_vars']
     
+    # --------------------------------------------------------------------------
+    # read in data
+    # ------------
+    infiles = []
+    for var in varlist:
+        inpath = Path(config['data']['inpaths'][var])
+        in_pattern = f"{config['exp']}_tropical_{var}_*.nc"
+        infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
+    dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
+    
     for i in range (len(analysis_times)-1):
         file_time_string = \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
-        
-        # ----------------------------------------------------------------------
-        # read in data
-        # ------------
-        infiles = []
-        for var in varlist:
-            inpath = Path(config['data']['inpaths'][var])
-            in_pattern = f"{config['exp']}_tropical_{var}_{file_time_string}.nc"
-            infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
-        dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
-        if config['test']: dset = dset.isel(time=slice(0, 2))
+        dset_sample = pcutil.subsample_analysis_data(
+            dset, analysis_times[i], analysis_times[i+1], config,
+            )
+        if config['test']: dset_sample = dset_sample.isel(time=slice(0, 2))
             
         # ----------------------------------------------------------------------
         # precprocessing
         # --------------
         # detrending
         if config['detrend']['switch']:
-            dset, feature_var, varlist = \
+            dset_sample, feature_var, varlist = \
                 pcfilter.detrend_with_hourly_climatology(
-                    dset, feature_var, config,
+                    dset_sample, feature_var, config,
                     )
-        for var in varlist: dset[var] = dset[var].compute()
+        for var in varlist: dset_sample[var] = dset_sample[var].compute()
         
         # scale separation
         filter_vars = [feature_var] + config['data']['wind_vars']
         if config['composite']['type'] == 'anomaly':
             filter_vars += config['data']['study_vars']
         dset_filter = pcfilter.get_gaussian_filter_bg_ano(
-            dset[filter_vars], **config['filter']
+            dset_sample[filter_vars], **config['filter']
             )
 
         if config['composite']['type'] == 'anomaly':
@@ -91,26 +94,28 @@ def main():
                     [f"{var}_bg" for var in config['data']['wind_vars']]
                     ],
                 dset_filter[f"{feature_var}_ano"],
-                dset,
+                dset_sample,
                 ]
             grad_var = feature_var
-        dset = xr.merge(merge_dsets)
+        dset_sample = xr.merge(merge_dsets)
 
         # add timelag and calculate gradients
-        dset = pcutil.add_timelag_idx_space(
-            dset, f"{feature_var}_ano", config['data']['timelag_idx'],
+        dset_sample = pcutil.add_timelag_idx_space(
+            dset_sample, f"{feature_var}_ano", config['data']['timelag_idx'],
             )
-        dset = pccoord.calc_sphere_gradient_laplacian(dset, grad_var)
-        dset['cell_area'] = get_cells_area(dset)
-        dset = dset.sel(lat=slice(*config['lat_range']), drop=True)
+        dset_sample = pccoord.calc_sphere_gradient_laplacian(
+            dset_sample, grad_var,
+            )
+        dset_sample['cell_area'] = get_cells_area(dset_sample)
+        dset_sample = dset_sample.sel(lat=slice(*config['lat_range']), drop=True)
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
         # ---------------------------------
         # extract anomaly features per timestep
         features = Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
-            delayed(process_one_timestep_safe)(dset, time, config)
-            for time in dset['time']
+            delayed(process_one_timestep_safe)(dset_sample, time, config)
+            for time in dset_sample['time']
             )
         
         # merge features per timestep into one file and set global feature id
@@ -127,7 +132,7 @@ def main():
         # ----------------------------------------------------------------------
         # clean up
         # --------
-        del dset
+        del dset_sample
         del features
         gc.collect()
 

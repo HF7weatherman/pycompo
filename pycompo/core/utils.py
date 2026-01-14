@@ -73,6 +73,19 @@ def get_subgroup_vars_dict(config: dict) -> dict:
 
 # DATA PREPROCESSING UTILITIES
 # ----------------------------
+def subsample_analysis_data(
+        dset: xr.DataArray | xr.Dataset,
+        start_time: np.datetime64,
+        end_time: np.datetime64,
+        config: dict,
+        ) -> xr.DataArray | xr.Dataset:
+    granularity = np.timedelta64(int(24/config['data']['spd']), 'h')
+    timelag = np.timedelta64(
+        int(config['data']['timelag_idx'] * (24/config['data']['spd'])), 'h',
+        )
+    return dset.sel(time=slice(start_time, end_time - granularity + timelag))
+
+
 def circ_roll_avg(
         dset: xr.DataArray | xr.Dataset,
         clim_avg_days: int | float,

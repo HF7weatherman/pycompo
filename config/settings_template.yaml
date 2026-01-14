@@ -50,7 +50,7 @@ data:
   outpath: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
   analysis_time:
     - 2020-08-01T00:00:00Z
-    - 2020-09-01T00:00:00Z
+    - 2020-10-01T00:00:00Z
   spd: 1
   timelag_idx: 0
 
