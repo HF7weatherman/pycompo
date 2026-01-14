@@ -13,6 +13,10 @@ export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/api/combine_feature_props.p
 export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/api/get_composites.py
 
 # GET FEATURES
+OUTPATH=$(grep outpath ${CONFIG_FILE} | cut -d ":" -f2 | xargs)
+FLAG_FILE="${OUTPATH}/${1}/features/get_features_finished.txt"
+
+while [ ! -f "${FLAG_FILE}" ]; do
 jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
 #!/bin/bash
 #SBATCH --account=mh0731
@@ -37,9 +41,13 @@ export NUMEXPR_NUM_THREADS=1
 python3 "${RUNFILE1}" "${CONFIG_FILE}"
 EOF
 )
-	  
+while squeue -j "$jobid1" -h | grep -q .; do
+    sleep 30
+done
+done
+
 # COMBINE FEATURE PROPS
-jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} <<EOF
+jobid2=$(sbatch --parsable --constraint=${node_size} <<EOF
 #!/bin/bash
 #SBATCH --account=mh0731
 #SBATCH --partition=compute
@@ -89,5 +97,3 @@ export NUMEXPR_NUM_THREADS=1
 python3 "${RUNFILE3}" "${CONFIG_FILE}"
 EOF
 )
-
-squeue -u $USER

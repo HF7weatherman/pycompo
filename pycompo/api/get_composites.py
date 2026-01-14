@@ -18,6 +18,35 @@ def main():
     config_file = sys.argv[1]
     config = pcutils.read_yaml_config(config_file)
 
+    # set and create outpath if necesary
+    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
+    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
+    outpath.mkdir(parents=True, exist_ok=True)
+
+    # set outfiles and check whether they already exist
+    outfiles = {
+        "alltrops_pvalue": outpath/Path(f"{analysis_idf}_pvalue_alltrops.nc"),
+        "alltrops_compo": outpath/Path(f"{analysis_idf}_composite_alltrops.nc"),
+    }
+    outfiles_exist = outfiles['alltrops_pvalue'].exists()
+    outfiles_exist = outfiles['alltrops_compo'].exists()
+    if config['composite']['rainbelt_subsampling']['switch']:
+        outfiles['rainbelt_pvalue'] = \
+            outpath/Path(f"{analysis_idf}_pvalue_rainbelt.nc")
+        outfiles['rainbelt_compo'] = \
+            outpath/Path(f"{analysis_idf}_composite_rainbelt.nc")
+        outfiles_exist = outfiles_exist and outfiles['rainbelt_pvalue'].exists()
+        outfiles_exist = outfiles_exist and outfiles['rainbelt_compo'].exists()
+
+    if not outfiles_exist:
+        print("Combining feature properties from all time steps ...")
+        run_get_composites(config, outfiles)
+
+
+def run_get_composites(
+        config: dict,
+        outfiles: dict,
+        ) -> None:
     start_time = config['data']['analysis_time'][0]
     end_time = config['data']['analysis_time'][1]
     analysis_times = [
@@ -75,9 +104,6 @@ def main():
     # --------------------------------------------------------------------------
     # merge to a full feature composite
     # ---------------------------------
-    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
-    outpath.mkdir(parents=True, exist_ok=True)
-
     alltrops_compo = xr.concat(alltrops_compo, dim='month')
     alltrops_var = xr.concat(alltrops_var, dim='month')
     alltrops_N_features = xr.DataArray(
@@ -88,14 +114,10 @@ def main():
         alltrops_N_features,
         popmean=config['sigtest']['null_hypothesis_popmean'],
         )
-    outfile = Path(f"{analysis_idf}_pvalue_alltrops_all.nc")
-    alltrops_pvalue.to_netcdf(str(outpath/outfile))
-    
-    outfile = Path(f"{analysis_idf}_composite_alltrops_all.nc")
+    alltrops_pvalue.to_netcdf(str(outfiles['alltrops_pvalue']))
     alltrops_compo = alltrops_compo.mean(dim='month')
-    alltrops_compo.to_netcdf(str(outpath/outfile))
+    alltrops_compo.to_netcdf(str(outfiles['alltrops_compo']))
 
-            
     if config['composite']['rainbelt_subsampling']['switch']:
         rainbelt_compo = xr.concat(rainbelt_compo, dim='month')
         rainbelt_var = xr.concat(rainbelt_var, dim='month')
@@ -107,12 +129,9 @@ def main():
             rainbelt_N_features,
             popmean=config['sigtest']['null_hypothesis_popmean'],
             )
-        outfile = Path(f"{analysis_idf}_pvalue_rainbelt_all.nc")
-        rainbelt_pvalue.to_netcdf(str(outpath/outfile))
-        
-        outfile = Path(f"{analysis_idf}_composite_rainbelt_all.nc")
+        rainbelt_pvalue.to_netcdf(str(outfiles['rainbelt_pvalue']))
         rainbelt_compo = rainbelt_compo.mean(dim='month')
-        rainbelt_compo.to_netcdf(str(outpath/outfile))
+        rainbelt_compo.to_netcdf(str(outfiles['rainbelt_compo']))
 
 
 # ------------------------------------------------------------------------------

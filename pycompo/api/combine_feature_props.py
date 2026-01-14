@@ -11,73 +11,97 @@ from pycompo.core.sst_features import set_global_feature_id
 
 warnings.filterwarnings(action='ignore')
 
-# ------------------------------------------------------------------------------
-# preparations
-# ------------
-keep_props = [
-    'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind', 'bg_sfcwind_dir',
-    'ts_ano_detect_mean', 'axis_major_length_idx', 'axis_minor_length_idx',
-    'orientation_idx', 'centroid_sphere',
-    ]
 
+def run_combine_feature_props(
+        config: dict,
+        outfiles: dict,
+        ) -> None:
+    # --------------------------------------------------------------------------
+    # preparations
+    # ------------
+    keep_props = [
+        'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind',
+        'bg_sfcwind_dir', 'ts_ano_detect_mean', 'axis_major_length_idx', 
+        'axis_minor_length_idx', 'orientation_idx', 'centroid_sphere',
+        ]
+
+    start_time = config['data']['analysis_time'][0]
+    end_time = config['data']['analysis_time'][1]
+    analysis_times = [
+        np.datetime64(t) for t in date_range(
+            np.datetime64(start_time), np.datetime64(end_time), freq='MS',
+            )
+        ]
+    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
+
+    # --------------------------------------------------------------------------
+    # build rainbelt
+    # --------------
+    if config['composite']['rainbelt_subsampling']['switch']:
+        rainbelt = pccompo.get_rainbelt(analysis_times, config, quantile=0.8)
+        rainbelt = rainbelt.compute()
+
+    # --------------------------------------------------------------------------
+    # create a single feature composite
+    # ---------------------------------
+    inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
+
+    feature_props = []
+    feature_props_rainbelt = []
+    for i in range (len(analysis_times)-1):
+        print(f"Processing feature properties for {analysis_times[i]} ...")
+        
+        # read in data
+        file_timestr = \
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
+        infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
+        features = xr.open_dataset(infile).compute()
+        feature_props.append(features[keep_props])
+
+        # Precipitation-based geographic subsampling
+        if config['composite']['rainbelt_subsampling']['switch']:
+            features_rainbelt = pccompo.sample_features_geomask(
+                features, rainbelt,
+                )
+            feature_props_rainbelt.append(features_rainbelt[keep_props])
+
+        # Basin-based geographic subsampling
+        # TODO: Implement basin-based geographical subsampling
+        
+    feature_props = xr.concat(set_global_feature_id(
+        feature_props), dim='feature',
+        )
+    feature_props_rainbelt = xr.concat(
+        set_global_feature_id(feature_props_rainbelt), dim='feature',
+        )
+
+    # save feature composite data
+    feature_props.to_netcdf(str(outfiles['alltrops']))
+    if config['composite']['rainbelt_subsampling']['switch']:
+        feature_props_rainbelt.to_netcdf(str(outfiles['rainbelt']))
+
+
+# ------------------------------------------------------------------------------
+# run script
+# ----------
 # read in configuration file
 config_file = sys.argv[1]
 config = pcutil.read_yaml_config(config_file)
 
-start_time = config['data']['analysis_time'][0]
-end_time = config['data']['analysis_time'][1]
-analysis_times = [
-    np.datetime64(t) for t in date_range(
-        np.datetime64(start_time), np.datetime64(end_time), freq='MS',
-        )
-    ]
-feature_var = config['data']['feature_var']
 analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
-
-# ------------------------------------------------------------------------------
-# build rainbelt
-# --------------
-if config['composite']['rainbelt_subsampling']['switch']:
-    rainbelt = pccompo.get_rainbelt(analysis_times, config, quantile=0.8)
-    rainbelt = rainbelt.compute()
-
-# ------------------------------------------------------------------------------
-# create a single feature composite
-# ---------------------------------
-inpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
-
-feature_props = []
-feature_props_rainbelt = []
-for i in range (len(analysis_times)-1):
-    print(f"Processing feature properties for {analysis_times[i]} ...")
-    
-    # read in data
-    file_timestr = \
-        f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
-        f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
-    infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
-    features = xr.open_dataset(infile).compute()
-    feature_props.append(features[keep_props])
-
-    # Precipitation-based geographic subsampling
-    if config['composite']['rainbelt_subsampling']['switch']:
-        features_rainbelt = pccompo.sample_features_geomask(features, rainbelt)
-        feature_props_rainbelt.append(features_rainbelt[keep_props])
-
-    # Basin-based geographic subsampling
-    # TODO: Implement basin-based geographical subsampling
-    
-feature_props = xr.concat(set_global_feature_id(feature_props), dim='feature')
-feature_props_rainbelt = xr.concat(
-    set_global_feature_id(feature_props_rainbelt), dim='feature',
-    )
-
-# save feature composite data
 outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/")
 outpath.mkdir(parents=True, exist_ok=True)
 
-outfile = Path(f"{analysis_idf}_feature_props_alltrops_all.nc")
-feature_props.to_netcdf(str(outpath/outfile))
+outfiles = {
+    "alltrops": outpath/Path(f"{analysis_idf}_feature_props_alltrops_all.nc"),
+    }
+outfiles_exist = outfiles['alltrops'].exists()
 if config['composite']['rainbelt_subsampling']['switch']:
-    outfile = Path(f"{analysis_idf}_feature_props_rainbelt_all.nc")
-    feature_props_rainbelt.to_netcdf(str(outpath/outfile))
+    outfiles['rainbelt'] = \
+        outpath/Path(f"{analysis_idf}_feature_props_rainbelt_all.nc")
+    outfiles_exist = outfiles_exist and outfiles['rainbelt'].exists()
+
+if not outfiles_exist:
+    print("Combining feature properties from all time steps ...")
+    run_combine_feature_props(config, outfiles)

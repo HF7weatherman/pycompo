@@ -40,6 +40,9 @@ def main():
     varlist = [feature_var] + config['data']['wind_vars'] + \
         config['data']['study_vars']
     
+    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
+    outpath.mkdir(parents=True, exist_ok=True)
+
     # --------------------------------------------------------------------------
     # read in data
     # ------------
@@ -50,10 +53,18 @@ def main():
         infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
     dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
     
+    n_new_files = 0
     for i in range (len(analysis_times)-1):
         file_time_string = \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
-            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"    
+        outfile = Path(f"{analysis_idf}_features_{file_time_string}.nc")
+        if (outpath/outfile).exists():
+            continue
+        else:
+            n_new_files += 1
+
+
         dset_sample = pcutil.subsample_analysis_data(
             dset, analysis_times[i], analysis_times[i+1], config,
             )
@@ -124,9 +135,6 @@ def main():
         features.attrs["identifier"] = analysis_idf
 
         # save feature composite data
-        outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
-        outpath.mkdir(parents=True, exist_ok=True)
-        outfile = Path(f"{analysis_idf}_features_{file_time_string}.nc")
         features.to_netcdf(str(outpath/outfile))
 
         # ----------------------------------------------------------------------
@@ -137,6 +145,12 @@ def main():
         gc.collect()
 
         if config['test']: break
+
+    if n_new_files == 0:
+        (outpath/Path("get_features_finished.txt")).touch()
+        print(
+            "All feature files already exist, no new ones created.", flush=True,
+            )
 
 
 def process_one_timestep_safe(
