@@ -136,7 +136,7 @@ def main():
             f"{config['data']['outpath']}/{analysis_idf}/popmeans/",
             )
         outpath_popmean.mkdir(parents=True, exist_ok=True)
-        outfile_popmean = Path(f"{analysis_idf}_features_{file_time_string}.nc")
+        outfile_popmean = Path(f"{analysis_idf}_popmeans_{file_time_string}.nc")
         popmeans.to_netcdf(str(outpath_popmean/outfile_popmean))
 
         # ----------------------------------------------------------------------
