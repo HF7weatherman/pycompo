@@ -4,6 +4,7 @@ import xarray as xr
 from typing import Tuple
 from matplotlib.patches import Ellipse
 from matplotlib.axes import Axes
+import cmocean
 
 import pycompo.core.coord as pccoord
 
@@ -65,14 +66,14 @@ COMPO_PLOT_LABEL = {
 }
 
 COMPO_PLOT_RANGE = {
-    'ts': [297., 300.],
+    'ts': [301., 302.5],
     'dts_dx': [-0.5, 0.5],
     'dts_dy': [-0.5, 0.5],
     'ts_laplacian': [-12, 12],
     'downwind_ts_grad': [-0.7, 0.7],
     'crosswind_ts_grad': [-0.7, 0.7],
     'tas': [297., 300.],
-    'pr': [2.0, 4.0],
+    'pr': [5.0, 10.0],
     'hfls': [125, 150],
     'hfss': [10, 15],
     'prw': [40., 45.],
@@ -235,6 +236,64 @@ CLABEL_NICE = {
     'clw_ano': "mg$\,$kg$^{-1}$",
     'cli_ano': "mg$\,$kg$^{-1}$",
     'pfull_ano': "Pa",
+}
+
+
+COMPO_PLOT_CMAP = {
+    'ts': cmocean.cm.thermal,
+    'dts_dx': "RdBu_r",
+    'dts_dy': "RdBu_r",
+    'ts_laplacian': "RdBu_r",
+    'downwind_ts_grad': "RdBu_r",
+    'crosswind_ts_grad': "RdBu_r",
+    'tas': cmocean.cm.thermal,
+    'pr': cmocean.cm.rain,
+    'hfls': cmocean.cm.thermal,
+    'hfss': cmocean.cm.thermal,
+    'prw': cmocean.cm.thermal,
+    'rlut': cmocean.cm.thermal,
+    'ps': cmocean.cm.thermal,
+    'cllvi': cmocean.cm.matter,
+    'clivi': cmocean.cm.matter,
+    'sfcwind': cmocean.cm.amp,
+    'sfcwind_conv': "RdBu_r",
+    'uas': cmocean.cm.amp,
+    'vas': cmocean.cm.amp,
+    'ua': cmocean.cm.thermal,
+    'va': cmocean.cm.thermal,
+    'wa': cmocean.cm.gray,
+    'ta': cmocean.cm.thermal,
+    'hus': cmocean.cm.thermal,
+    'clw': cmocean.cm.thermal,
+    'cli': cmocean.cm.thermal,
+    'pfull': cmocean.cm.dense,
+    'ts_ano': "RdBu_r",
+    'dts_ano_dx': "RdBu_r",
+    'dts_ano_dy': "RdBu_r",
+    'ts_ano_laplacian': "RdBu_r",
+    'downwind_ts_ano_grad': "RdBu_r",
+    'crosswind_ts_ano_grad': "RdBu_r",
+    'tas_ano': "RdBu_r",
+    'pr_ano': "RdBu_r",
+    'hfls_ano': "RdBu_r",
+    'hfss_ano': "RdBu_r",
+    'prw_ano': "RdBu_r",
+    'rlut_ano': "RdBu_r",
+    'ps_ano': "RdBu_r",
+    'cllvi_ano': "RdBu_r",
+    'clivi_ano': "RdBu_r",
+    'sfcwind_ano': "RdBu_r",
+    'sfcwind_conv_ano': "RdBu_r",
+    'uas_ano': "RdBu_r",
+    'vas_ano': "RdBu_r",
+    'ua_ano': "RdBu_r",
+    'va_ano': "RdBu_r",
+    'wa_ano': 'RdBu_r',
+    'ta_ano': 'RdBu_r',
+    'hus_ano': 'RdBu_r',
+    'clw_ano': 'RdBu_r',
+    'cli_ano': 'RdBu_r',
+    'pfull_ano': "RdBu_r",
 }
 
 
@@ -485,7 +544,7 @@ def plot_composite(
         compo_data['En_rota2_featcen_x'],
         compo_data['En_rota2_featcen_y'],
         compo_data.transpose(),
-        cmap="RdBu_r", vmin=COMPO_PLOT_RANGE[var][0],
+        cmap=COMPO_PLOT_CMAP[var], vmin=COMPO_PLOT_RANGE[var][0],
         vmax=COMPO_PLOT_RANGE[var][1],
     )
     if sigmask is not None: plot_sigmask(axs, sigmask)
