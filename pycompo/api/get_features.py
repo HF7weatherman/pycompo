@@ -118,7 +118,26 @@ def main():
             dset_sample, grad_var,
             )
         dset_sample['cell_area'] = get_cells_area(dset_sample)
-        dset_sample = dset_sample.sel(lat=slice(*config['lat_range']), drop=True)
+        dset_sample = dset_sample.sel(
+            lat=slice(*config['lat_range']), drop=True
+            )
+        
+        # ----------------------------------------------------------------------
+        # calculate population mean for correct Null hypothesis in sigtests
+        # -----------------------------------------------------------------
+        popmeans = (\
+            dset.drop('cell_area') * dset['cell_area']/dset['cell_area'].sum()
+            ).sum(dim=['lat', 'lon'])        
+        popmeans[f'downwind_{feature_var}_ano_grad'] = \
+            popmeans[f'd{feature_var}_ano_dx'] * 0. 
+        popmeans[f'crosswind_{feature_var}_ano_grad'] = \
+            popmeans[f'd{feature_var}_ano_dy'] * 0.
+        outpath_popmean = Path(
+            f"{config['data']['outpath']}/{analysis_idf}/popmeans/",
+            )
+        outpath_popmean.mkdir(parents=True, exist_ok=True)
+        outfile_popmean = Path(f"{analysis_idf}_features_{file_time_string}.nc")
+        popmeans.to_netcdf(str(outpath_popmean/outfile_popmean))
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
