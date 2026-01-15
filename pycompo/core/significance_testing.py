@@ -319,3 +319,20 @@ def _manual_t_test(
             }
         )
     return t_stat, p_value
+
+
+# ------------------------------------------------------------------------------
+# Functions to calculate population mean
+# --------------------------------------
+def calc_popmeans(
+        dset: xr.Dataset,
+        feature_var: str,
+        ) -> xr.Dataset:
+    popmeans = (
+        dset.drop('cell_area') * dset['cell_area']/dset['cell_area'].sum()
+        ).sum(dim=['lat', 'lon'])
+    popmeans[f'downwind_{feature_var}_ano_grad'] = \
+        popmeans[f'd{feature_var}_ano_dx'] * 0. 
+    popmeans[f'crosswind_{feature_var}_ano_grad'] = \
+        popmeans[f'd{feature_var}_ano_dy'] * 0.
+    return popmeans

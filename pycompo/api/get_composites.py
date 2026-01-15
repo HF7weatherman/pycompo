@@ -70,13 +70,14 @@ def run_get_composites(
     alltrops_var = []
     alltrops_N_features = []
 
+    inpath_popms = Path(f"{config['data']['outpath']}/{analysis_idf}/popmeans/")
+    alltrops_popmeans = []
+
     if config['composite']['rainbelt_subsampling']['switch']:
         rainbelt_compo = []
         rainbelt_var = []
         rainbelt_N_features = []
-
-    inpath_popms = Path(f"{config['data']['outpath']}/{analysis_idf}/popmeans/")
-    popmeans = []
+        rainbelt_popmeans = []
 
     for i in range (len(analysis_times)-1):
         file_timestr = \
@@ -95,6 +96,14 @@ def run_get_composites(
         alltrops_var.append(features_alltrops.var(dim='feature', ddof=1))
         alltrops_N_features.append(features_alltrops.sizes['feature'])
 
+        # read in population means
+        infile = inpath_popms/Path(
+            f"{analysis_idf}_popmeans_alltrops_{file_timestr}.nc"
+            )
+        alltrops_popmeans.append(
+            xr.open_dataset(infile).mean(dim='time').compute()
+            )
+
         # Precipitation-based geographic subsampling
         if config['composite']['rainbelt_subsampling']['switch']:
             features_rainbelt = pccompo.sample_features_geomask(
@@ -104,15 +113,20 @@ def run_get_composites(
             rainbelt_var.append(features_rainbelt.var(dim='feature', ddof=1))
             rainbelt_N_features.append(features_rainbelt.sizes['feature'])
 
-        # read in population means
-        infile = inpath_popms/Path(f"{analysis_idf}_popmeans_{file_timestr}.nc")
-        popmeans.append(xr.open_dataset(infile).mean(dim='time').compute())
+            # read in population means
+            infile = inpath_popms/Path(
+                f"{analysis_idf}_popmeans_rainbelt_{file_timestr}.nc"
+                )
+            rainbelt_popmeans.append(
+                xr.open_dataset(infile).mean(dim='time').compute()
+                )
     
     
     # --------------------------------------------------------------------------
     # merge to a full feature composite
     # ---------------------------------
-    popmeans = xr.concat(popmeans, dim='month').mean(dim='month')
+    alltrops_popmeans = \
+        xr.concat(alltrops_popmeans, dim='month').mean(dim='month')
 
     alltrops_compo = xr.concat(alltrops_compo, dim='month')
     alltrops_var = xr.concat(alltrops_var, dim='month')
@@ -121,13 +135,15 @@ def run_get_composites(
         )
     _, alltrops_pvalue = pcsig.yearly_ttest_from_monthly_data(
         alltrops_compo[compo_vars], alltrops_var[compo_vars],
-        alltrops_N_features, popmean=popmeans[compo_vars],
+        alltrops_N_features, popmean=alltrops_popmeans[compo_vars],
         )
     alltrops_pvalue.to_netcdf(str(outfiles['alltrops_pvalue']))
     alltrops_compo = alltrops_compo.mean(dim='month')
     alltrops_compo.to_netcdf(str(outfiles['alltrops_compo']))
 
     if config['composite']['rainbelt_subsampling']['switch']:
+        rainbelt_popmeans = \
+            xr.concat(rainbelt_popmeans, dim='month').mean(dim='month')
         rainbelt_compo = xr.concat(rainbelt_compo, dim='month')
         rainbelt_var = xr.concat(rainbelt_var, dim='month')
         rainbelt_N_features = xr.DataArray(
@@ -135,7 +151,7 @@ def run_get_composites(
             )
         _, rainbelt_pvalue = pcsig.yearly_ttest_from_monthly_data(
             rainbelt_compo[compo_vars], rainbelt_var[compo_vars], 
-            rainbelt_N_features, popmean=popmeans[compo_vars],
+            rainbelt_N_features, popmean=rainbelt_popmeans[compo_vars],
             )
         rainbelt_pvalue.to_netcdf(str(outfiles['rainbelt_pvalue']))
         rainbelt_compo = rainbelt_compo.mean(dim='month')
