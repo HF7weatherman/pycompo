@@ -15,6 +15,13 @@ def np_datetime2file_datestr(time_np64: np.datetime64) -> str:
     return time_np64.astype('datetime64[us]').astype('O').strftime(format)
 
 
+def area_weighted_avg(
+        data: xr.DataArray | xr.Dataset,
+        area: xr.DataArray,
+        ) -> xr.DataArray | xr.Dataset:
+    return (data * area).sum(dim=['lat', 'lon']) / area.sum(dim=['lat', 'lon'])
+
+
 def roll_avg(
         dset: xr.DataArray | xr.Dataset,
         clim_avg_days: int | float,

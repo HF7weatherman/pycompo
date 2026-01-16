@@ -2,6 +2,8 @@ from scipy import stats
 import numpy as np
 import xarray as xr
 
+from pycompo.core.utils import area_weighted_avg
+
 # ------------------------------------------------------------------------------
 # Functions for local significance test
 # -------------------------------------
@@ -259,7 +261,6 @@ def fdr_heuristics(
     return p_segment_select
 
 
-
 # ------------------------------------------------------------------------------
 # Manual significance test
 # ------------------------
@@ -328,9 +329,7 @@ def calc_popmeans(
         dset: xr.Dataset,
         feature_var: str,
         ) -> xr.Dataset:
-    popmeans = (
-        dset.drop('cell_area') * dset['cell_area']/dset['cell_area'].sum()
-        ).sum(dim=['lat', 'lon'])
+    popmeans = area_weighted_avg(dset.drop('cell_area'), dset['cell_area'])
     popmeans[f'downwind_{feature_var}_ano_grad'] = \
         popmeans[f'd{feature_var}_ano_dx'] * 0. 
     popmeans[f'crosswind_{feature_var}_ano_grad'] = \
