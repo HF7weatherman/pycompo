@@ -9,8 +9,8 @@ data:
     - uas
     - vas
   study_vars:
+    - tas
     - pr
-    - prw
     #- hfls
     #- hfss
     #- rlut
@@ -30,6 +30,7 @@ data:
     ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
     uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
     vas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/vas_latlon/
+    tas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/tas_latlon/
     pr: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/pr_latlon/
     prw: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/prw_latlon/
     hfls: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/hfls_latlon/

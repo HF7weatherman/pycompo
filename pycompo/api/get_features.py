@@ -64,7 +64,6 @@ def main():
         else:
             n_new_files += 1
 
-
         dset_sample = pcutil.subsample_analysis_data(
             dset, analysis_times[i], analysis_times[i+1], config,
             )
@@ -108,6 +107,13 @@ def main():
                 dset_sample,
                 ]
             grad_var = feature_var
+        
+        # calculate stability proxy if input variables are available
+        if 'ts_bg' in dset_filter and 'tas_bg' in dset_filter:
+            dset_filter['tas-ts_bg'] = \
+                dset_filter['tas_bg'] - dset_filter['ts_bg']
+            merge_dsets.append(dset_filter['tas-ts_bg'])
+        
         dset_sample = xr.merge(merge_dsets)
 
         # add timelag and calculate gradients
