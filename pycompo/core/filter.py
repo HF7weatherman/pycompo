@@ -5,6 +5,7 @@ from typing import Tuple
 from pathlib import Path
 
 from pycompo.core.utils import circ_roll_avg
+from pycompo.core.coord import KM_PER_DEGREE_EQ
 
 # ------------------------------------------------------------------------------
 # Functions for building a climatology and using it to detrend a timeseries
@@ -243,6 +244,6 @@ def _Lc_km2deg(
     - The conversion uses the average value of 1 degree latitude ≈ 111.195 km.
     - The longitude conversion accounts for the cosine of the latitude.
     """
-    deg_per_km_lat = 1/111.195
-    deg_per_km_lon = 1/(111.195 * np.cos(np.deg2rad(lat_mid)))
+    deg_per_km_lat = 1/KM_PER_DEGREE_EQ
+    deg_per_km_lon = 1/(KM_PER_DEGREE_EQ * np.cos(np.deg2rad(lat_mid)))
     return (Lc_km * deg_per_km_lat, Lc_km * deg_per_km_lon)
