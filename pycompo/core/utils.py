@@ -83,7 +83,12 @@ def subsample_analysis_data(
     timelag = np.timedelta64(
         int(config['data']['timelag_idx'] * (24/config['data']['spd'])), 'h',
         )
-    return dset.sel(time=slice(start_time, end_time - granularity + timelag))
+    return dset.sel(
+        time=slice(
+            np.datetime64(start_time),
+            np.datetime64(end_time) - granularity + timelag,
+            )
+        )
 
 
 def circ_roll_avg(
