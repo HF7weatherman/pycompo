@@ -10,6 +10,7 @@ from pandas import date_range
 
 from pyorg.core.geometry import get_cells_area
 
+import pycompo.core.composite as pccompo
 import pycompo.core.coord as pccoord
 import pycompo.core.filter as pcfilter
 import pycompo.core.sst_features as pcsst
@@ -222,8 +223,8 @@ def process_one_timestep(
     feature_props = pcwind.calc_feature_bg_wind(
         feature_props, feature_data, config['data']['wind_vars'],
         )
-    feature_props['centroid_sphere'] = pccoord._get_centroid_coords(
-        orig_coords, feature_props['centroid_idx'],
+    feature_props = pcsst.add_more_feature_props(
+        feature_props, feature_data, orig_coords,
         )
     
     # coordinate transformation

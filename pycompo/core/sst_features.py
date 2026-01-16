@@ -6,6 +6,9 @@ from typing import Tuple
 from pyorg.core.geometry import get_cells_area
 from pyorg.core.clusters import get_clusters, get_clusters_areas
 
+from pycompo.core.utils import area_weighted_avg
+from pycompo.core.coord import _get_centroid_coords
+
 
 # ------------------------------------------------------------------------------
 # Functions to get SST features and basic statistics
@@ -238,3 +241,36 @@ def set_global_feature_id(feature_list: list) -> list:
         feature_list[idx]['feature_id'] = ('feature', global_feature_ids)
 
     return feature_list
+
+
+# ------------------------------------------------------------------------------
+# Functions to calculate feature quantities
+# ------------------------------------------
+def add_more_feature_props(
+        feature_props: xr.Dataset,
+        feature_centric_data: list[xr.Dataset],
+        orig_coords: xr.Dataset,
+):
+    feature_props['centroid_sphere'] = _get_centroid_coords(
+        orig_coords, feature_props['centroid_idx'],
+        )
+    for data in feature_centric_data:
+        if 'tas-ts_bg' in data.data_vars:
+            feature_props = _calc_feature_bg_field(
+                feature_props, feature_centric_data, 'tas-ts',
+                )
+    return feature_props
+
+
+def _calc_feature_bg_field(
+        feature_props: xr.Dataset,
+        feature_centric_data: list[xr.Dataset],
+        var: str,
+        ) -> xr.Dataset:
+    bg_field = [
+        area_weighted_avg(data[f"{var}_bg"], data['cell_area']).values
+        for data in feature_centric_data
+        ]
+    feature_props[f'bg_{var}'] = ('feature', bg_field)
+
+    return feature_props

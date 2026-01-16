@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 from typing import Tuple
 
-from pycompo.core.utils import area_weighted_avg
+from pycompo.core.sst_features import _calc_feature_bg_field
 
 def calc_feature_bg_wind(
         feature_props: xr.Dataset,
@@ -12,11 +12,9 @@ def calc_feature_bg_wind(
         ) -> xr.Dataset:
     # Calculate mean wind components for cutout region
     for var in wind_vars:
-        bg_wind_component = [
-            area_weighted_avg(data[f"{var}_bg"], data['cell_area']).values
-            for data in feature_centric_data
-            ]
-        feature_props[f'bg_{var}'] = ('feature', bg_wind_component)
+        feature_props = _calc_feature_bg_field(
+            feature_props, feature_centric_data, var,
+            )
 
     if calc_sfcwind:
         # Calculate sfcwind speed and direction
