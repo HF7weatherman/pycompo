@@ -15,6 +15,7 @@ import pycompo.core.filter as pcfilter
 import pycompo.core.sst_features as pcsst
 import pycompo.core.utils as pcutil
 import pycompo.core.wind as pcwind
+import pycompo.core.significance_testing as pcsig
 
 from pycompo.core.composite import get_compo_coords_ds
 from pycompo.core.feature_cutout import get_featcen_data_cutouts
@@ -40,8 +41,10 @@ def main():
     varlist = [feature_var] + config['data']['wind_vars'] + \
         config['data']['study_vars']
     
-    outpath = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
-    outpath.mkdir(parents=True, exist_ok=True)
+    outpath_feat = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
+    outpath_feat.mkdir(parents=True, exist_ok=True)
+    outpath_popm = Path(f"{config['data']['outpath']}/{analysis_idf}/popmeans/")
+    outpath_popm.mkdir(parents=True, exist_ok=True)
 
     # --------------------------------------------------------------------------
     # read in data
@@ -58,8 +61,8 @@ def main():
         file_time_string = \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"    
-        outfile = Path(f"{analysis_idf}_features_{file_time_string}.nc")
-        if (outpath/outfile).exists():
+        outfile_feat = Path(f"{analysis_idf}_features_{file_time_string}.nc")
+        if (outpath_feat/outfile_feat).exists():
             continue
         else:
             n_new_files += 1
@@ -124,7 +127,31 @@ def main():
             dset_sample, grad_var,
             )
         dset_sample['cell_area'] = get_cells_area(dset_sample)
-        dset_sample = dset_sample.sel(lat=slice(*config['lat_range']), drop=True)
+        dset_sample = dset_sample.sel(
+            lat=slice(*config['lat_range']), drop=True
+            )
+        
+        # ----------------------------------------------------------------------
+        # calculate population mean for correct Null hypothesis in sigtests
+        # -----------------------------------------------------------------
+        outfile_popm = Path(
+            f"{analysis_idf}_popmeans_alltrops_{file_time_string}.nc"
+            )
+        popmeans_alltrops = pcsig.calc_popmeans(dset, feature_var)
+        popmeans_alltrops.to_netcdf(str(outpath_popm/outfile_popm))
+
+        if config['composite']['rainbelt_subsampling']['switch']:
+            outfile_popm = Path(
+                f"{analysis_idf}_popmeans_rainbelt_{file_time_string}.nc"
+                )
+            rainbelt = pccompo.get_rainbelt(
+                analysis_times, config, quantile=0.8,
+                ).compute()
+            if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
+            popmeans_rainbelt = pcsig.calc_popmeans(
+                dset.where(rainbelt), feature_var,
+                )
+            popmeans_rainbelt.to_netcdf(str(outpath_popm/outfile_popm))
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
@@ -141,7 +168,7 @@ def main():
         features.attrs["identifier"] = analysis_idf
 
         # save feature composite data
-        features.to_netcdf(str(outpath/outfile))
+        features.to_netcdf(str(outpath_feat/outfile_feat))
 
         # ----------------------------------------------------------------------
         # clean up
@@ -153,7 +180,7 @@ def main():
         if config['test']: break
 
     if n_new_files == 0:
-        (outpath/Path("get_features_finished.txt")).touch()
+        (outpath_feat/Path("get_features_finished.txt")).touch()
         print(
             "All feature files already exist, no new ones created.", flush=True,
             )

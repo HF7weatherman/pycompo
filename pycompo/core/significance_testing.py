@@ -7,7 +7,7 @@ import xarray as xr
 # -------------------------------------
 def calc_compo_ttest(
         feature_compo_data: xr.Dataset,
-        popmean: float = 0.0,
+        popmean: xr.Dataset,
     ) -> tuple[xr.Dataset, xr.Dataset]:
     """Calculate t-test for each grid point in the composite dataset.
 
@@ -33,7 +33,7 @@ def calc_compo_ttest(
 
 def _calc_compo_ttest(
         feature_compo_data: xr.Dataset,
-        popmean: float = 0.0,
+        popmean: xr.Dataset,
     ) -> tuple[dict, dict]:
     """
     Performs a one-sample t-test for each variable in the input xr.Dataset along 
@@ -64,7 +64,9 @@ def _calc_compo_ttest(
             "The first dimension of feature_compo_data must be 'feature'."
             )
     ttest_results = {
-        var: stats.ttest_1samp(feature_compo_data[var], popmean=popmean, axis=0)
+        var: stats.ttest_1samp(
+            feature_compo_data[var], popmean=popmean[var].values, axis=0,
+            )
         for var in feature_compo_data.data_vars
         }
     tstat = {var: data.statistic for var, data in ttest_results.items()}
@@ -317,3 +319,20 @@ def _manual_t_test(
             }
         )
     return t_stat, p_value
+
+
+# ------------------------------------------------------------------------------
+# Functions to calculate population mean
+# --------------------------------------
+def calc_popmeans(
+        dset: xr.Dataset,
+        feature_var: str,
+        ) -> xr.Dataset:
+    popmeans = (
+        dset.drop('cell_area') * dset['cell_area']/dset['cell_area'].sum()
+        ).sum(dim=['lat', 'lon'])
+    popmeans[f'downwind_{feature_var}_ano_grad'] = \
+        popmeans[f'd{feature_var}_ano_dx'] * 0. 
+    popmeans[f'crosswind_{feature_var}_ano_grad'] = \
+        popmeans[f'd{feature_var}_ano_dy'] * 0.
+    return popmeans
