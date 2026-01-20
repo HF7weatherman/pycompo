@@ -62,11 +62,16 @@ def main():
         file_time_string = \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
             f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"    
+
         outfile_feat = Path(f"{analysis_idf}_features_{file_time_string}.nc")
-        if (outpath_feat/outfile_feat).exists():
+        outfile_popm_alltrops = Path(
+            f"{analysis_idf}_popmeans_alltrops_{file_time_string}.nc"
+            )
+        if all([
+            (outpath_feat/outfile_feat).exists(),
+            (outpath_popm/outfile_popm_alltrops).exists(),
+        ]):
             continue
-        else:
-            n_new_files += 1
 
         dset_sample = pcutil.subsample_analysis_data(
             dset, analysis_times[i], analysis_times[i+1], config,
@@ -135,14 +140,8 @@ def main():
         # ----------------------------------------------------------------------
         # calculate population mean for correct Null hypothesis in sigtests
         # -----------------------------------------------------------------
-        outfile_popm = Path(
-            f"{analysis_idf}_popmeans_alltrops_{file_time_string}.nc"
-            )
-        popmeans_alltrops = pcsig.calc_popmeans(dset, feature_var)
-        popmeans_alltrops.to_netcdf(str(outpath_popm/outfile_popm))
-
         if config['composite']['rainbelt_subsampling']['switch']:
-            outfile_popm = Path(
+            outfile_popm_rainbelt = Path(
                 f"{analysis_idf}_popmeans_rainbelt_{file_time_string}.nc"
                 )
             rainbelt = pccompo.get_rainbelt(
@@ -150,9 +149,13 @@ def main():
                 ).compute()
             if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
             popmeans_rainbelt = pcsig.calc_popmeans(
-                dset.where(rainbelt), feature_var,
+                dset_sample.where(rainbelt), feature_var,
                 )
-            popmeans_rainbelt.to_netcdf(str(outpath_popm/outfile_popm))
+            popmeans_rainbelt.to_netcdf(str(outpath_popm/outfile_popm_rainbelt))
+
+        popmeans_alltrops = pcsig.calc_popmeans(dset_sample, feature_var)
+        popmeans_alltrops.to_netcdf(str(outpath_popm/outfile_popm_alltrops))
+
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
@@ -179,12 +182,6 @@ def main():
         gc.collect()
 
         if config['test']: break
-
-    if n_new_files == 0:
-        (outpath_feat/Path("get_features_finished.txt")).touch()
-        print(
-            "All feature files already exist, no new ones created.", flush=True,
-            )
 
 
 def process_one_timestep_safe(

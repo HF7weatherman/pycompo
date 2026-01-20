@@ -13,10 +13,10 @@ export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/api/combine_feature_props.p
 export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/api/get_composites.py
 
 # GET FEATURES
-OUTPATH=$(grep outpath ${CONFIG_FILE} | cut -d ":" -f2 | xargs)
-FLAG_FILE="${OUTPATH}/${1}/features/get_features_finished.txt"
+#OUTPATH=$(grep outpath ${CONFIG_FILE} | cut -d ":" -f2 | xargs)
+#FLAG_FILE="${OUTPATH}/${1}/features/getting_features.flag"
+#touch ${FLAG_FILE}
 
-while [ ! -f "${FLAG_FILE}" ]; do
 jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
 #!/bin/bash
 #SBATCH --account=mh0731
@@ -25,6 +25,8 @@ jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
 #SBATCH --time=08:00:00
+#SBATCH --requeue
+#SBATCH --signal=SIGUSR1@300
 #SBATCH --job-name="get_features"
 #SBATCH --output=LOG/get_features.%j.out
 #SBATCH --error=LOG/get_features.%j.out
@@ -38,16 +40,14 @@ export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
+trap 'echo "Time limit reached, exiting cleanly"; exit 99' SIGUSR1
+
 python3 "${RUNFILE1}" "${CONFIG_FILE}"
 EOF
 )
-while squeue -j "$jobid1" -h | grep -q .; do
-    sleep 30
-done
-done
 
 # COMBINE FEATURE PROPS
-jobid2=$(sbatch --parsable --constraint=${node_size} <<EOF
+jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} <<EOF
 #!/bin/bash
 #SBATCH --account=mh0731
 #SBATCH --partition=compute
