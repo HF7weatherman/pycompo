@@ -3,7 +3,7 @@ import xarray as xr
 import numpy as np
 
 from grid_toolbox.spherical_derivatives_latlon import \
-    compute_gradient_and_laplacian_on_latlon
+    compute_gradient_and_laplacian_on_latlon, compute_laplacian_on_latlon
 
 KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 
@@ -44,6 +44,19 @@ def calc_sphere_gradient_laplacian(
     dset[f'd{feature_var}_dx'] = gradient[0]
     dset[f'd{feature_var}_dy'] = gradient[1]
     dset[f'{feature_var}_laplacian'] = laplacian
+    for var in dset.data_vars:
+        dset[var] = dset[var].where(
+            ~np.isnan(dset[f'{feature_var}_laplacian']), np.NaN
+            )
+    return dset
+
+
+def calc_sphere_laplacian(
+        dset: xr.DataArray | xr.Dataset,
+        feature_var: str,
+        ) -> xr.Dataset:
+    dset[f'{feature_var}_laplacian'] = \
+        compute_laplacian_on_latlon(dset[feature_var])
     for var in dset.data_vars:
         dset[var] = dset[var].where(
             ~np.isnan(dset[f'{feature_var}_laplacian']), np.NaN
