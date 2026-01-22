@@ -16,6 +16,7 @@ def main():
 
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     ana_times = pcutil.create_analysis_times(config)
+    rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
     subgroup_vars = pcutil.get_subgroup_vars_dict(config)
 
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
@@ -26,47 +27,40 @@ def main():
     # --------------------------------------
     ipath = Path(f"{config['data']['outpath']}/{ana_idf}/")
     ifile = Path(f"{ana_idf}_feature_props_alltrops_all.nc")
-    featprops_alltrops = xr.open_dataset(str(ipath/ifile))
+    featprops_at = xr.open_dataset(str(ipath/ifile))
 
     if config['composite']['rainbelt_subsampling']['switch']:
         rainbelt = pccompo.get_rainbelt(ana_times, config, quantile=0.8)
         rainbelt = rainbelt.compute()
         ifile = Path(f"{ana_idf}_feature_props_rainbelt_all.nc")
-        featprops_rainbelt = xr.open_dataset(str(ipath/ifile))
+        featprops_rb = xr.open_dataset(str(ipath/ifile))
 
 
     # --------------------------------------------------------------------------
     # create feature composite per time step
     # --------------------------------------
-    alltrops_subcompo = {var: [] for var in subgroup_vars.keys()}
-    if config['composite']['rainbelt_subsampling']['switch']:
-        rainbelt_subcompo = {var: [] for var in subgroup_vars.keys()}
+    subcompo_at = {var: [] for var in subgroup_vars.keys()}
+    if rainbelt_switch: subcompo_rb = {var: [] for var in subgroup_vars.keys()}
 
     ipath = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
     for start_time, end_time in zip(ana_times, ana_times[1:]):
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         ifile = ipath/Path(f"{ana_idf}_features_{fdate_str}.nc")
-        feats_alltrops = xr.open_dataset(ifile).compute()
+        feats_at = xr.open_dataset(ifile).compute()
         
-        # subsample based on BG conditions
         for var, thresholds in subgroup_vars.items():
-            alltrops_subcompo[var].append(
+            subcompo_at[var].append(
                 pccompo.get_subgroup_compos_per_ts(
-                    feats_alltrops, featprops_alltrops[var], thresholds,
+                    feats_at, featprops_at[var], thresholds,
                     )
                 )
 
-        # Precipitation-based geographic subsampling
-        if config['composite']['rainbelt_subsampling']['switch']:
-            feats_rainbelt = pccompo.sample_features_geomask(
-                feats_alltrops, rainbelt,
-                )
-            
-            # subsample based on BG conditions
+        if rainbelt_switch:
+            feats_rb = pccompo.sample_features_geomask(feats_at, rainbelt)
             for var, thresholds in subgroup_vars.items():
-                rainbelt_subcompo[var].append(
+                subcompo_rb[var].append(
                     pccompo.get_quartile_compos_per_ts(
-                        feats_rainbelt, featprops_rainbelt[var], thresholds,
+                        feats_rb, featprops_rb[var], thresholds,
                         )
                     )
                 
@@ -74,19 +68,15 @@ def main():
     # merge to a full feature composite
     # ---------------------------------
     for var in subgroup_vars:
-        alltrops_subcompo[var] = pccompo.get_full_quartile_compos(
-            alltrops_subcompo[var],
-        )
+        subcompo_at[var] = pccompo.get_full_quartile_compos(subcompo_at[var])
         ofile = Path(f"{ana_idf}_composite_alltrops_{var}_quartiles.nc")
-        alltrops_subcompo[var].to_netcdf(str(opath/ofile))
+        subcompo_at[var].to_netcdf(str(opath/ofile))
             
-    if config['composite']['rainbelt_subsampling']['switch']:
+    if rainbelt_switch:
         for var in subgroup_vars:
-            rainbelt_subcompo[var] = pccompo.get_full_quartile_compos(
-                rainbelt_subcompo[var],
-                )
+            subcompo_rb[var] = pccompo.get_full_quartile_compos(subcompo_rb[var])
             ofile = Path(f"{ana_idf}_composite_rainbelt_{var}_quartiles.nc")
-            rainbelt_subcompo[var].to_netcdf(str(opath/ofile))
+            subcompo_rb[var].to_netcdf(str(opath/ofile))
 
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
