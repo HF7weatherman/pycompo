@@ -39,8 +39,13 @@ def main():
     # --------------------------------------------------------------------------
     # create feature composite per time step
     # --------------------------------------
-    subcompo_at = {var: [] for var in subgroup_vars.keys()}
-    if rainbelt_switch: subcompo_rb = {var: [] for var in subgroup_vars.keys()}
+    compo_bin_at = {var: [] for var in subgroup_vars.keys()}
+    var_bin_at = {var: [] for var in subgroup_vars.keys()}
+    N_feats_bin_at = {var: [] for var in subgroup_vars.keys()}
+    if rainbelt_switch:
+        compo_bin_rb = {var: [] for var in subgroup_vars.keys()}
+        var_bin_rb = {var: [] for var in subgroup_vars.keys()}
+        N_feats_bin_rb = {var: [] for var in subgroup_vars.keys()}
 
     ipath = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
     for start_time, end_time in zip(ana_times, ana_times[1:]):
@@ -49,20 +54,20 @@ def main():
         feats_at = xr.open_dataset(ifile).compute()
         
         for var, thresholds in subgroup_vars.items():
-            subcompo_at[var].append(
-                pccompo.get_subgroup_compos_per_ts(
-                    feats_at, featprops_at[var], thresholds,
-                    )
-                )
+            compo_bin, var_bin, N_feats_bin = \
+                pccompo.get_binned_features(feats_at, thresholds, var)
+            compo_bin_at[var].append(compo_bin)
+            var_bin_at[var].append(var_bin)
+            N_feats_bin_at[var].append(N_feats_bin)
 
         if rainbelt_switch:
             feats_rb = pccompo.sample_features_geomask(feats_at, rainbelt)
             for var, thresholds in subgroup_vars.items():
-                subcompo_rb[var].append(
-                    pccompo.get_quartile_compos_per_ts(
-                        feats_rb, featprops_rb[var], thresholds,
-                        )
-                    )
+                compo_bin, var_bin, N_feats_bin = \
+                    pccompo.get_binned_features(feats_rb, thresholds, var)
+                compo_bin_rb[var].append(compo_bin)
+                var_bin_rb[var].append(var_bin)
+                N_feats_bin_rb[var].append(N_feats_bin)
                 
     # --------------------------------------------------------------------------
     # merge to a full feature composite

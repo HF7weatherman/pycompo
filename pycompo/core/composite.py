@@ -295,6 +295,23 @@ def get_quartile_compos_per_ts(
         }
 
 
+def get_binned_features(
+        features: xr.Dataset,
+        thresholds: list[np.float32 | np.float64],
+        var: str,
+        ) -> Tuple[dict, dict, dict]:
+    compo_bin, var_bin, N_feats_bin = {}, {}, {}
+    for start, end in zip(thresholds, thresholds[1:]):
+        key = f"bin_{var}_{start}-{end}"
+        features_bin = features.where(
+            (features[var] > start) & (features[var] <= end), drop=True,
+            )
+        compo_bin[key] = features_bin.mean(dim='feature')
+        var_bin[key] = features_bin.var(dim='feature', ddof=1)
+        N_feats_bin[key] = features_bin.sizes['feature']
+    return compo_bin, var_bin, N_feats_bin
+
+
 def get_full_quartile_compos(
         quartile_compo: list[dict],
         ) -> xr.Dataset:
