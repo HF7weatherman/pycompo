@@ -76,12 +76,12 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
     # --------------------------------------
     for start_time, end_time in zip(ana_times, ana_times[1:]):
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
-        
         ifile = Path(f"{ana_idf}_features_{fdate_str}.nc")
-        at_feats = xr.open_dataset(ipath_feats/ifile).compute()
-        at_compo.append(at_feats.mean(dim='feature'))
-        at_var.append(at_feats.var(dim='feature', ddof=1))
-        at_N_feats.append(at_feats.sizes['feature'])
+        feats_at = xr.open_dataset(ipath_feats/ifile).compute()
+
+        at_compo.append(feats_at.mean(dim='feature'))
+        at_var.append(feats_at.var(dim='feature', ddof=1))
+        at_N_feats.append(feats_at.sizes['feature'])
 
         ifile = Path(f"{ana_idf}_popmeans_alltrops_{fdate_str}.nc")
         at_popmeans.append(
@@ -89,10 +89,10 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
             )
 
         if rainbelt_switch:
-            rb_feats = sample_features_geomask(at_feats, rainbelt)
-            rb_compo.append(rb_feats.mean(dim='feature'))
-            rb_var.append(rb_feats.var(dim='feature', ddof=1))
-            rb_N_feats.append(rb_feats.sizes['feature'])
+            feats_rb = sample_features_geomask(feats_at, rainbelt)
+            rb_compo.append(feats_rb.mean(dim='feature'))
+            rb_var.append(feats_rb.var(dim='feature', ddof=1))
+            rb_N_feats.append(feats_rb.sizes['feature'])
 
             ifile = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
             rb_popmeans.append(
