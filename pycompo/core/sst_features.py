@@ -259,6 +259,10 @@ def add_more_feature_props(
             feature_props = _calc_feature_bg_field(
                 feature_props, feature_centric_data, 'tas-ts',
                 )
+        if 'sfc_rho_bg' in data.data_vars:
+            feature_props = _calc_feature_bg_field(
+                feature_props, feature_centric_data, 'tas-ts',
+                )
     return feature_props
 
 
