@@ -19,8 +19,9 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     ipath = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
+    rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
 
-    if config['composite']['rainbelt_subsampling']['switch']:
+    if rainbelt_switch:
         rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
 
     # --------------------------------------------------------------------------
@@ -33,7 +34,7 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
         features = xr.open_dataset(ifile).compute()
         featprops.append(features[KEEP_PROPS])
 
-        if config['composite']['rainbelt_subsampling']['switch']:
+        if rainbelt_switch:
             features_rainbelt = sample_features_geomask(features, rainbelt)
             featprops_rainbelt.append(features_rainbelt[KEEP_PROPS])
 
@@ -46,7 +47,7 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
         )
 
     featprops.to_netcdf(str(outfiles['alltrops']))
-    if config['composite']['rainbelt_subsampling']['switch']:
+    if rainbelt_switch:
         featprops_rainbelt.to_netcdf(str(outfiles['rainbelt']))
 
 

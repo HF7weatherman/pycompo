@@ -62,11 +62,12 @@ def build_yearly_compo_pvalue(
 def run_get_composites(config: dict, ofiles: dict) -> None:
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
+    rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
     inpath_feats = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
     inpath_popms = Path(f"{config['data']['outpath']}/{ana_idf}/popmeans/")
     alltrops_compo, alltrops_var, alltrops_N_feats, alltrops_popmeans = [], [], [], []
 
-    if config['composite']['rainbelt_subsampling']['switch']:
+    if rainbelt_switch:
         rainbelt_compo, rainbelt_var, rainbelt_N_feats, rainbelt_popmeans = [], [], [], []
         rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
 
@@ -88,8 +89,7 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
             xr.open_dataset(inpath_popms/ifile).mean(dim='time').compute()
             )
 
-        # Precipitation-based geographic subsampling
-        if config['composite']['rainbelt_subsampling']['switch']:
+        if rainbelt_switch:
             feats_rainbelt = sample_features_geomask(feats_alltrops, rainbelt)
             rainbelt_compo.append(feats_rainbelt.mean(dim='feature'))
             rainbelt_var.append(feats_rainbelt.var(dim='feature', ddof=1))
@@ -109,7 +109,7 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
     alltrops_pvalue.to_netcdf(str(ofiles['alltrops_pvalue']))
     alltrops_compo.to_netcdf(str(ofiles['alltrops_compo']))
 
-    if config['composite']['rainbelt_subsampling']['switch']:
+    if rainbelt_switch:
         rainbelt_compo, rainbelt_pvalue = build_yearly_compo_pvalue(
             rainbelt_compo, rainbelt_popmeans, rainbelt_var, rainbelt_N_feats,
             )
