@@ -6,178 +6,138 @@ import xarray as xr
 import warnings
 from joblib import Parallel, delayed
 from pathlib import Path
-from pandas import date_range
 
 from pyorg.core.geometry import get_cells_area
 
-import pycompo.core.composite as pccompo
 import pycompo.core.coord as pccoord
 import pycompo.core.filter as pcfilter
 import pycompo.core.sst_features as pcsst
 import pycompo.core.utils as pcutil
 import pycompo.core.wind as pcwind
-import pycompo.core.significance_testing as pcsig
 
-from pycompo.core.composite import get_compo_coords_ds
-from pycompo.core.feature_cutout import get_featcen_data_cutouts
+from pycompo.core.composite import get_rainbelt, get_compo_coords_ds
 from pycompo.core.ellipse import get_ellipse_params
+from pycompo.core.feature_cutout import get_featcen_data_cutouts
+from pycompo.core.significance_testing import calc_popmeans
 
 warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
-    # read in settings
     config_file = sys.argv[1]
     config = pcutil.read_yaml_config(config_file)
 
-    start_time = config['data']['analysis_time'][0]
-    end_time = config['data']['analysis_time'][1]
-    analysis_times = [
-        np.datetime64(t) for t in date_range(
-            np.datetime64(start_time), np.datetime64(end_time), freq='MS',
-            )
-        ]
-    analysis_idf = f"{config['exp']}_{config['pycompo_name']}"
-    feature_var = config['data']['feature_var']
-    varlist = [feature_var] + config['data']['wind_vars'] + \
-        config['data']['study_vars']
+    ana_times = pcutil.create_analysis_times(config)
+    ana_idf = f"{config['exp']}_{config['pycompo_name']}"
+    feat_var = config['data']['feature_var']
+    wind_vars = config['data']['wind_vars']
+    study_vars = config['data']['study_vars']
+    varlist = [feat_var] + wind_vars + study_vars
     
-    outpath_feat = Path(f"{config['data']['outpath']}/{analysis_idf}/features/")
-    outpath_feat.mkdir(parents=True, exist_ok=True)
-    outpath_popm = Path(f"{config['data']['outpath']}/{analysis_idf}/popmeans/")
-    outpath_popm.mkdir(parents=True, exist_ok=True)
+    opath_feat = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
+    opath_feat.mkdir(parents=True, exist_ok=True)
+    opath_popm = Path(f"{config['data']['outpath']}/{ana_idf}/popmeans/")
+    opath_popm.mkdir(parents=True, exist_ok=True)
 
-    # --------------------------------------------------------------------------
-    # read in data
-    # ------------
-    infiles = []
+    ifiles = []
     for var in varlist:
-        inpath = Path(config['data']['inpaths'][var])
-        in_pattern = f"{config['exp']}_tropical_{var}_*.nc"
-        infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
-    dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
+        ipath = Path(config['data']['inpaths'][var])
+        ipattern = f"{config['exp']}_tropical_{var}_*.nc"
+        ifiles.extend(sorted([str(f) for f in ipath.rglob(ipattern)]))
+    dset = xr.open_mfdataset(ifiles, parallel=True).squeeze()
     
-    n_new_files = 0
-    for i in range (len(analysis_times)-1):
-        file_time_string = \
-            f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
-            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"    
-
-        outfile_feat = Path(f"{analysis_idf}_features_{file_time_string}.nc")
-        outfile_popm_alltrops = Path(
-            f"{analysis_idf}_popmeans_alltrops_{file_time_string}.nc"
-            )
-        if all([
-            (outpath_feat/outfile_feat).exists(),
-            (outpath_popm/outfile_popm_alltrops).exists(),
-        ]):
-            continue
-
-        dset_sample = pcutil.subsample_analysis_data(
-            dset, analysis_times[i], analysis_times[i+1], config,
-            )
-        if config['test']: dset_sample = dset_sample.isel(time=slice(0, 2))
-            
-        # ----------------------------------------------------------------------
-        # precprocessing
-        # --------------
-        # detrending
-        if config['detrend']['switch']:
-            dset_sample, feature_var, varlist = \
-                pcfilter.detrend_with_hourly_climatology(
-                    dset_sample, feature_var, config,
-                    )
-        for var in varlist: dset_sample[var] = dset_sample[var].compute()
+    # --------------------------------------------------------------------------
+    # main logical loop
+    # -----------------
+    for start_time, end_time in zip(ana_times, ana_times[1:]):
+        fdate_str = pcutil.create_ftime_str(start_time, end_time)
+        ofile_feat = Path(f"{ana_idf}_features_{fdate_str}.nc")
+        ofile_popm_alltrops = Path(f"{ana_idf}_popmeans_alltrops_{fdate_str}.nc")
         
+        ofiles_exist = all([
+            (opath_feat/ofile_feat).exists(),
+            (opath_popm/ofile_popm_alltrops).exists(),
+            ])
+        if ofiles_exist: continue
+
+        dsample = pcutil.subsample_analysis_data(
+            dset, start_time, end_time, config,
+            )
+        if config['test']: dsample = dsample.isel(time=slice(0, 2))
+
+        if config['detrend']['switch']:
+            dsample, feat_var, varlist = \
+                pcfilter.detrend_with_hourly_climatology(
+                    dsample, feat_var, config,
+                    )
+        for var in varlist: dsample[var] = dsample[var].compute()
+        
+        # ----------------------------------------------------------------------
         # scale separation
-        filter_vars = [feature_var] + config['data']['wind_vars']
-        if config['composite']['type'] == 'anomaly':
-            filter_vars += config['data']['study_vars']
-        dset_filter = pcfilter.get_gaussian_filter_bg_ano(
-            dset_sample[filter_vars], **config['filter']
+        # ----------------
+        filter_vars = [feat_var] + wind_vars
+        if config['composite']['type'] == 'anomaly': filter_vars += study_vars
+        dfilter = pcfilter.get_gaussian_filter_bg_ano(
+            dsample[filter_vars], **config['filter']
             )
 
         if config['composite']['type'] == 'anomaly':
             merge_dsets = [
-                dset_filter[
-                    [f"{var}_bg" for var in config['data']['wind_vars']]
-                    ],
-                dset_filter[
-                    [f"{var}_ano" for var in filter_vars]
-                    ],
+                dfilter[[f"{var}_bg" for var in wind_vars]],
+                dfilter[[f"{var}_ano" for var in filter_vars]],
                 ]
-            grad_var = f"{feature_var}_ano"
+            grad_var = f"{feat_var}_ano"
         elif config['composite']['type'] == 'absolute':
             merge_dsets = [
-                dset_filter[
-                    [f"{var}_bg" for var in config['data']['wind_vars']]
-                    ],
-                dset_filter[f"{feature_var}_ano"],
-                dset_sample,
+                dfilter[[f"{var}_bg" for var in wind_vars]],
+                dfilter[f"{feat_var}_ano"],
+                dsample,
                 ]
-            grad_var = feature_var
+            grad_var = feat_var
         
-        # calculate stability proxy if input variables are available
-        if 'ts_bg' in dset_filter and 'tas_bg' in dset_filter:
-            dset_filter['tas-ts_bg'] = \
-                dset_filter['tas_bg'] - dset_filter['ts_bg']
-            merge_dsets.append(dset_filter['tas-ts_bg'])
+        if 'ts_bg' in dfilter and 'tas_bg' in dfilter:
+            dfilter['tas-ts_bg'] = dfilter['tas_bg'] - dfilter['ts_bg']
+            merge_dsets.append(dfilter['tas-ts_bg'])
         
-        dset_sample = xr.merge(merge_dsets)
+        dsample = xr.merge(merge_dsets)
 
         # add timelag and calculate gradients
-        dset_sample = pcutil.add_timelag_idx_space(
-            dset_sample, f"{feature_var}_ano", config['data']['timelag_idx'],
+        dsample = pcutil.add_timelag_idx_space(
+            dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
-        dset_sample = pccoord.calc_sphere_gradient_laplacian(
-            dset_sample, grad_var,
-            )
-        dset_sample['cell_area'] = get_cells_area(dset_sample)
-        dset_sample = dset_sample.sel(
-            lat=slice(*config['lat_range']), drop=True
-            )
+        dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
+        dsample['cell_area'] = get_cells_area(dsample)
+        dsample = dsample.sel(lat=slice(*config['lat_range']), drop=True)
         
         # ----------------------------------------------------------------------
         # calculate population mean for correct Null hypothesis in sigtests
         # -----------------------------------------------------------------
         if config['composite']['rainbelt_subsampling']['switch']:
-            outfile_popm_rainbelt = Path(
-                f"{analysis_idf}_popmeans_rainbelt_{file_time_string}.nc"
+            ofile_popm_rainbelt = Path(
+                f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc"
                 )
-            rainbelt = pccompo.get_rainbelt(
-                analysis_times, config, quantile=0.8,
-                ).compute()
+            rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
             if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
-            popmeans_rainbelt = pcsig.calc_popmeans(
-                dset_sample.where(rainbelt), feature_var,
-                )
-            popmeans_rainbelt.to_netcdf(str(outpath_popm/outfile_popm_rainbelt))
+            popmeans_rainbelt = calc_popmeans(dsample.where(rainbelt), feat_var)
+            popmeans_rainbelt.to_netcdf(str(opath_popm/ofile_popm_rainbelt))
 
-        popmeans_alltrops = pcsig.calc_popmeans(dset_sample, feature_var)
-        popmeans_alltrops.to_netcdf(str(outpath_popm/outfile_popm_alltrops))
-
+        popmeans_alltrops = calc_popmeans(dsample, feat_var)
+        popmeans_alltrops.to_netcdf(str(opath_popm/ofile_popm_alltrops))
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
         # ---------------------------------
-        # extract anomaly features per timestep
         features = Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
-            delayed(process_one_timestep_safe)(dset_sample, time, config)
-            for time in dset_sample['time']
+            delayed(process_one_timestep_safe)(dsample, time, config)
+            for time in dsample['time']
             )
-        
-        # merge features per timestep into one file and set global feature id
         features = pcsst.set_global_feature_id(features)
         features = xr.concat(features, dim='feature')
-        features.attrs["identifier"] = analysis_idf
+        features.attrs["identifier"] = ana_idf
+        features.to_netcdf(str(opath_feat/ofile_feat))
 
-        # save feature composite data
-        features.to_netcdf(str(outpath_feat/outfile_feat))
-
-        # ----------------------------------------------------------------------
         # clean up
-        # --------
-        del dset_sample
+        del dsample
         del features
         gc.collect()
 
@@ -205,44 +165,41 @@ def process_one_timestep(
         ) -> xr.Dataset:
     data = dset.sel(time=time)
     orig_coords = pccoord.get_coords_orig(data.drop('time'))
-    feature_var = config['data']['feature_var']
+    feat_var = config['data']['feature_var']
     if config['composite']['type'] == 'anomaly':
-        grad_var = f"{feature_var}_ano"
+        grad_var = f"{feat_var}_ano"
     elif config['composite']['type'] == 'absolute':
-        grad_var = feature_var
+        grad_var = feat_var
 
-    data[f"{feature_var}_feature"], feature_props = pcsst.extract_sst_features(
-        data[f"{feature_var}_ano_detect"], **config['feature']
+    data[f"{feat_var}_feature"], featprops = pcsst.extract_sst_features(
+        data[f"{feat_var}_ano_detect"], **config['feature']
         )
-    data, feature_props, feature_data = get_featcen_data_cutouts(
-        data, feature_props, feature_var, config['cutout']['search_RadRatio'],
+    data, featprops, featdata = get_featcen_data_cutouts(
+        data, featprops, feat_var, config['cutout']['search_RadRatio'],
         )
-    feature_props = pcwind.calc_feature_bg_wind(
-        feature_props, feature_data, config['data']['wind_vars'],
+    featprops = pcwind.calc_feature_bg_wind(
+        featprops, featdata, config['data']['wind_vars'],
         )
-    feature_props = pcsst.add_more_feature_props(
-        feature_props, feature_data, orig_coords,
-        )
+    featprops = pcsst.add_more_feature_props(featprops, featdata, orig_coords)
     
     # coordinate transformation
-    feature_ellipse = get_ellipse_params(feature_props, orig_coords)
-    feature_data = pccoord.add_featcen_coords(
-        orig_coords, feature_data, feature_props, feature_ellipse,
+    feature_ellipse = get_ellipse_params(featprops, orig_coords)
+    featdata = pccoord.add_featcen_coords(
+        orig_coords, featdata, featprops, feature_ellipse,
         )
-    feature_data = pcwind.add_wind_grads(feature_data, feature_props, grad_var)
-    feature_data = pcwind.add_rotate_winds(feature_data, feature_props)
+    featdata = pcwind.add_wind_grads(featdata, featprops, grad_var)
+    featdata = pcwind.add_rotate_winds(featdata, featprops)
 
     print_time = time.values if hasattr(time, 'values') else time
-    print(f"{print_time}: {feature_data[0].data_vars}",
+    print(f"{print_time}: {featdata[0].data_vars}",
           file=sys.stderr, flush=True)
     
     # remapping to composite coordinate and creating consistent output array
-    feature_compo_data = get_compo_coords_ds(feature_data, config)
-    feature_props = feature_props.where(
-        feature_props['feature_id'].isin(feature_compo_data['feature_id']),
-        drop=True,
+    compo_data = get_compo_coords_ds(featdata, config)
+    featprops = featprops.where(
+        featprops['feature_id'].isin(compo_data['feature_id']), drop=True,
     )
-    return xr.merge([feature_props, feature_compo_data])
+    return xr.merge([featprops, compo_data])
     
 
 # ------------------------------------------------------------------------------

@@ -6,7 +6,7 @@ from pathlib import Path
 from pandas import date_range
 
 import pycompo.core.composite as pccompo
-import pycompo.core.utils as pcutils
+import pycompo.core.utils as pcutil
 import pycompo.core.significance_testing as pcsig
 
 warnings.filterwarnings(action='ignore')
@@ -16,7 +16,7 @@ warnings.filterwarnings(action='ignore')
 def main():
     # read in settings
     config_file = sys.argv[1]
-    config = pcutils.read_yaml_config(config_file)
+    config = pcutil.read_yaml_config(config_file)
 
     start_time = config['data']['analysis_time'][0]
     end_time = config['data']['analysis_time'][1]
@@ -62,8 +62,8 @@ def main():
     for i in range (len(analysis_times)-1):
         # read in data
         file_timestr = \
-            f"{pcutils.np_datetime2file_datestr(analysis_times[i])}-" + \
-            f"{pcutils.np_datetime2file_datestr(analysis_times[i+1])}"
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i])}-" + \
+            f"{pcutil.np_datetime2file_datestr(analysis_times[i+1])}"
         infile = inpath/Path(f"{analysis_idf}_features_{file_timestr}.nc")
         features_alltrops = xr.open_dataset(infile).compute()
         
