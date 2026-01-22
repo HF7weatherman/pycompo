@@ -51,18 +51,14 @@ def main():
     # -----------------
     for start_time, end_time in zip(ana_times, ana_times[1:]):
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
-        ofile_feat = Path(f"{ana_idf}_features_{fdate_str}.nc")
-        ofile_popm_alltrops = Path(f"{ana_idf}_popmeans_alltrops_{fdate_str}.nc")
-        
-        ofiles_exist = all([
-            (opath_feat/ofile_feat).exists(),
-            (opath_popm/ofile_popm_alltrops).exists(),
-            ])
+        ofile_feat = opath_feat/Path(f"{ana_idf}_features_{fdate_str}.nc")
+        ofile_popm_at = opath_popm/Path(
+            f"{ana_idf}_popmeans_alltrops_{fdate_str}.nc"
+            )
+        ofiles_exist = all([ofile_feat.exists(), ofile_popm_at.exists()])
         if ofiles_exist: continue
 
-        dsample = pcutil.subsample_analysis_data(
-            dset, start_time, end_time, config,
-            )
+        dsample = pcutil.subsample_data(dset, start_time, end_time, config)
         if config['test']: dsample = dsample.isel(time=slice(0, 2))
 
         if config['detrend']['switch']:
@@ -113,16 +109,14 @@ def main():
         # calculate population mean for correct Null hypothesis in sigtests
         # -----------------------------------------------------------------
         if config['composite']['rainbelt_subsampling']['switch']:
-            ofile_popm_rainbelt = Path(
-                f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc"
-                )
+            ofile_popm_rb = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
             rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
             if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
-            popmeans_rainbelt = calc_popmeans(dsample.where(rainbelt), feat_var)
-            popmeans_rainbelt.to_netcdf(str(opath_popm/ofile_popm_rainbelt))
+            popmeans_rb = calc_popmeans(dsample.where(rainbelt), feat_var)
+            popmeans_rb.to_netcdf(str(opath_popm/ofile_popm_rb))
 
-        popmeans_alltrops = calc_popmeans(dsample, feat_var)
-        popmeans_alltrops.to_netcdf(str(opath_popm/ofile_popm_alltrops))
+        popmeans_at = calc_popmeans(dsample, feat_var)
+        popmeans_at.to_netcdf(str(ofile_popm_at))
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
@@ -134,7 +128,7 @@ def main():
         features = pcsst.set_global_feature_id(features)
         features = xr.concat(features, dim='feature')
         features.attrs["identifier"] = ana_idf
-        features.to_netcdf(str(opath_feat/ofile_feat))
+        features.to_netcdf(str(ofile_feat))
 
         # clean up
         del dsample

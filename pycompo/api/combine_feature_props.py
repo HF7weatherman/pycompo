@@ -27,28 +27,24 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
     # --------------------------------------------------------------------------
     # create a single feature composite
     # ---------------------------------
-    featprops, featprops_rainbelt = [], []
+    featprops_at, featprops_rb = [], []
     for start_time, end_time in zip(ana_times, ana_times[1:]):
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         ifile = ipath/Path(f"{ana_idf}_features_{fdate_str}.nc")
-        features = xr.open_dataset(ifile).compute()
-        featprops.append(features[KEEP_PROPS])
+        features_at = xr.open_dataset(ifile).compute()
+        featprops_at.append(features_at[KEEP_PROPS])
 
         if rainbelt_switch:
-            features_rainbelt = sample_features_geomask(features, rainbelt)
-            featprops_rainbelt.append(features_rainbelt[KEEP_PROPS])
+            features_rb = sample_features_geomask(features_at, rainbelt)
+            featprops_rb.append(features_rb[KEEP_PROPS])
 
         # Basin-based geographic subsampling
         # TODO: Implement basin-based geographical subsampling
         
-    featprops = xr.concat(set_global_feature_id(featprops), dim='feature')
-    featprops_rainbelt = xr.concat(
-        set_global_feature_id(featprops_rainbelt), dim='feature',
-        )
-
-    featprops.to_netcdf(str(outfiles['alltrops']))
-    if rainbelt_switch:
-        featprops_rainbelt.to_netcdf(str(outfiles['rainbelt']))
+    featprops_at = xr.concat(set_global_feature_id(featprops_at), dim='feature')
+    featprops_rb = xr.concat(set_global_feature_id(featprops_rb), dim='feature')
+    featprops_at.to_netcdf(str(outfiles['alltrops']))
+    if rainbelt_switch: featprops_rb.to_netcdf(str(outfiles['rainbelt']))
 
 
 # ------------------------------------------------------------------------------

@@ -63,12 +63,12 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
-    inpath_feats = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
-    inpath_popms = Path(f"{config['data']['outpath']}/{ana_idf}/popmeans/")
-    alltrops_compo, alltrops_var, alltrops_N_feats, alltrops_popmeans = [], [], [], []
+    ipath_feats = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
+    ipath_popms = Path(f"{config['data']['outpath']}/{ana_idf}/popmeans/")
+    at_compo, at_var, at_N_feats, at_popmeans = [], [], [], []
 
     if rainbelt_switch:
-        rainbelt_compo, rainbelt_var, rainbelt_N_feats, rainbelt_popmeans = [], [], [], []
+        rb_compo, rb_var, rb_N_feats, rb_popmeans = [], [], [], []
         rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
 
     # --------------------------------------------------------------------------
@@ -78,43 +78,42 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         
         ifile = Path(f"{ana_idf}_features_{fdate_str}.nc")
-        feats_alltrops = xr.open_dataset(inpath_feats/ifile).compute()
-    
-        alltrops_compo.append(feats_alltrops.mean(dim='feature'))
-        alltrops_var.append(feats_alltrops.var(dim='feature', ddof=1))
-        alltrops_N_feats.append(feats_alltrops.sizes['feature'])
+        at_feats = xr.open_dataset(ipath_feats/ifile).compute()
+        at_compo.append(at_feats.mean(dim='feature'))
+        at_var.append(at_feats.var(dim='feature', ddof=1))
+        at_N_feats.append(at_feats.sizes['feature'])
 
         ifile = Path(f"{ana_idf}_popmeans_alltrops_{fdate_str}.nc")
-        alltrops_popmeans.append(
-            xr.open_dataset(inpath_popms/ifile).mean(dim='time').compute()
+        at_popmeans.append(
+            xr.open_dataset(ipath_popms/ifile).mean(dim='time').compute()
             )
 
         if rainbelt_switch:
-            feats_rainbelt = sample_features_geomask(feats_alltrops, rainbelt)
-            rainbelt_compo.append(feats_rainbelt.mean(dim='feature'))
-            rainbelt_var.append(feats_rainbelt.var(dim='feature', ddof=1))
-            rainbelt_N_feats.append(feats_rainbelt.sizes['feature'])
+            rb_feats = sample_features_geomask(at_feats, rainbelt)
+            rb_compo.append(rb_feats.mean(dim='feature'))
+            rb_var.append(rb_feats.var(dim='feature', ddof=1))
+            rb_N_feats.append(rb_feats.sizes['feature'])
 
             ifile = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
-            rainbelt_popmeans.append(
-                xr.open_dataset(inpath_popms/ifile).mean(dim='time').compute()
+            rb_popmeans.append(
+                xr.open_dataset(ipath_popms/ifile).mean(dim='time').compute()
                 )
     
     # --------------------------------------------------------------------------
     # merge to a full feature composite
     # ---------------------------------
-    alltrops_compo, alltrops_pvalue = build_yearly_compo_pvalue(
-        alltrops_compo, alltrops_popmeans, alltrops_var, alltrops_N_feats,
+    at_compo, at_pvalue = build_yearly_compo_pvalue(
+        at_compo, at_popmeans, at_var, at_N_feats,
         )
-    alltrops_pvalue.to_netcdf(str(ofiles['alltrops_pvalue']))
-    alltrops_compo.to_netcdf(str(ofiles['alltrops_compo']))
+    at_pvalue.to_netcdf(str(ofiles['alltrops_pvalue']))
+    at_compo.to_netcdf(str(ofiles['alltrops_compo']))
 
     if rainbelt_switch:
-        rainbelt_compo, rainbelt_pvalue = build_yearly_compo_pvalue(
-            rainbelt_compo, rainbelt_popmeans, rainbelt_var, rainbelt_N_feats,
+        rb_compo, rb_pvalue = build_yearly_compo_pvalue(
+            rb_compo, rb_popmeans, rb_var, rb_N_feats,
             )
-        rainbelt_pvalue.to_netcdf(str(ofiles['rainbelt_pvalue']))
-        rainbelt_compo.to_netcdf(str(ofiles['rainbelt_compo']))
+        rb_pvalue.to_netcdf(str(ofiles['rainbelt_pvalue']))
+        rb_compo.to_netcdf(str(ofiles['rainbelt_compo']))
 
 
 # ------------------------------------------------------------------------------

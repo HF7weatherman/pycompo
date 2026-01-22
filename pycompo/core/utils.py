@@ -81,7 +81,7 @@ def get_subgroup_vars_dict(config: dict) -> dict:
 
 # DATA PREPROCESSING UTILITIES
 # ----------------------------
-def subsample_analysis_data(
+def subsample_data(
         dset: xr.DataArray | xr.Dataset,
         start_time: np.datetime64,
         end_time: np.datetime64,
