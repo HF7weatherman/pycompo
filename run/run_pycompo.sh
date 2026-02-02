@@ -8,9 +8,9 @@ if [ -z "$analysis_identifier" ]; then
 fi
 
 export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
-export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/api/get_features.py
-export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/api/combine_feature_props.py
-export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/api/get_composites.py
+export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/drivers/get_features.py
+export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/drivers/combine_feature_props.py
+export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
 
 # GET FEATURES
 #OUTPATH=$(grep outpath ${CONFIG_FILE} | cut -d ":" -f2 | xargs)
@@ -33,7 +33,7 @@ jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
 #SBATCH --export=ALL
 
 source ~/.bashrc
-conda activate TRR181L4
+micromamba activate TRR181L4_old
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -61,7 +61,7 @@ jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobi
 #SBATCH --export=ALL
 
 source ~/.bashrc
-conda activate TRR181L4
+micromamba activate TRR181L4_old
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -87,7 +87,7 @@ jobid3=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobi
 #SBATCH --export=ALL
 
 source ~/.bashrc
-conda activate TRR181L4
+micromamba activate TRR181L4_old
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
