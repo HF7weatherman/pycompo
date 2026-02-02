@@ -8,9 +8,22 @@ authors = [
     {name = "Henning Franke, MPI-M"},
 ]
 dependencies = [
+    "cmocean",
+    "gc",
+    "joblib",
+    "math",
+    "matplotlib",
     "numpy",
+    "pandas",
+    "pathlib",
+    "scipy",
+    "skimage",
+    "sys",
+    "traceback",
     "typing",
+    "warnings",
     "xarray",
+    "yaml",
 ]
 description = "A python-based toolbox for composite analysis."
 requires-python = ">=3.10"
