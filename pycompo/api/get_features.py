@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 from pathlib import Path
 from pandas import date_range
 
-from pyorg.core.geometry import get_cells_area
+from grid_toolbox.basic_latlon import get_cells_area
 
 import pycompo.core.composite as pccompo
 import pycompo.core.coord as pccoord
@@ -16,7 +16,7 @@ import pycompo.core.filter as pcfilter
 import pycompo.core.sst_features as pcsst
 import pycompo.core.utils as pcutil
 import pycompo.core.wind as pcwind
-import pycompo.core.significance_testing as pcsig
+import pycompo.core.sigtest as pcsig
 
 from pycompo.core.composite import get_compo_coords_ds
 from pycompo.core.feature_cutout import get_featcen_data_cutouts

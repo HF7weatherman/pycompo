@@ -1,13 +1,13 @@
 import numpy as np
 import xarray as xr
 from skimage.measure import regionprops
-from typing import Tuple
+from typing import Tuple, List
 
-from pyorg.core.geometry import get_cells_area
-from pyorg.core.clusters import get_clusters, get_clusters_areas
+from grid_toolbox.basic_latlon import get_cells_area
 
+from pycompo.core.clusters import get_clusters, get_clusters_areas
 from pycompo.core.utils import area_weighted_avg
-from pycompo.core.coord import _get_centroid_coords
+from pycompo.core.coord import get_centroid_coords
 
 
 # ------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ def extract_sst_features(
         threshold: float,
         connectivity: int,
         min_area: float,
-        property_list: list[str],
+        property_list: List[str],
         ) -> Tuple[xr.DataArray, xr.Dataset]:
     feature_map, basic_feature_props = _get_sst_features(
         sst_dset, type=type, threshold=threshold, connectivity=connectivity,
@@ -50,7 +50,7 @@ def _get_sst_features(
     # Initialisation
     features_list, radii_list, areas_list, times_list = ([] for _ in range(4))
     total_features = 0
-    cell_area = get_cells_area(data)
+    cell_area = data['cell_area']
     
     def _get_sst_features_single_timestep(data, type, threshold):
         nonlocal total_features
@@ -210,7 +210,7 @@ def _build_structure_element(connectivity: int=4) -> list:
 def _update_features(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
-        feature_data: list[xr.Dataset],
+        feature_data: List[xr.Dataset],
         ) -> Tuple[xr.DataArray, xr.Dataset]:
     keep_features = [int(data['feature_id'].values) for data in feature_data]
     feature_props = feature_props.where(
@@ -248,10 +248,10 @@ def set_global_feature_id(feature_list: list) -> list:
 # ------------------------------------------
 def add_more_feature_props(
         feature_props: xr.Dataset,
-        feature_centric_data: list[xr.Dataset],
+        feature_centric_data: List[xr.Dataset],
         orig_coords: xr.Dataset,
 ):
-    feature_props['centroid_sphere'] = _get_centroid_coords(
+    feature_props['centroid_sphere'] = get_centroid_coords(
         orig_coords, feature_props['centroid_idx'],
         )
     for data in feature_centric_data:
@@ -268,7 +268,7 @@ def add_more_feature_props(
 
 def _calc_feature_bg_field(
         feature_props: xr.Dataset,
-        feature_centric_data: list[xr.Dataset],
+        feature_centric_data: List[xr.Dataset],
         var: str,
         ) -> xr.Dataset:
     bg_field = [

@@ -2,6 +2,8 @@ from scipy import stats
 import numpy as np
 import xarray as xr
 
+from typing import Tuple
+
 from pycompo.core.utils import area_weighted_avg
 
 # ------------------------------------------------------------------------------
@@ -10,7 +12,7 @@ from pycompo.core.utils import area_weighted_avg
 def calc_compo_ttest(
         feature_compo_data: xr.Dataset,
         popmean: xr.Dataset,
-    ) -> tuple[xr.Dataset, xr.Dataset]:
+    ) -> Tuple[xr.Dataset, xr.Dataset]:
     """Calculate t-test for each grid point in the composite dataset.
 
     Parameters
@@ -36,7 +38,7 @@ def calc_compo_ttest(
 def _calc_compo_ttest(
         feature_compo_data: xr.Dataset,
         popmean: xr.Dataset,
-    ) -> tuple[dict, dict]:
+    ) -> Tuple[dict, dict]:
     """
     Performs a one-sample t-test for each variable in the input xr.Dataset along 
     the 'feature' dimension.
@@ -194,7 +196,7 @@ def multiple_hypothesis_test_with_FDR(
 def _benjamini_hochberg_procedure(
         p_field: np.ndarray,
         alpha_FDR: float
-        ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Apply the Benjamini-Hochberg procedure to control the FDR."""
     N_points = p_field.size
     p_vector = p_field.flatten()
@@ -281,7 +283,7 @@ def _monthly2yearly_stats(
         mon_mean: xr.Dataset,
         mon_var: xr.Dataset,
         n_per_mon: xr.DataArray,
-        ) -> tuple[xr.Dataset, xr.Dataset]:
+        ) -> Tuple[xr.Dataset, xr.Dataset]:
     year_mean = (n_per_mon * mon_mean).sum(dim='month') / \
         n_per_mon.sum(dim='month')
     year_var = (
@@ -296,7 +298,7 @@ def _manual_t_test(
         variance: np.ndarray,
         n_sample: int,
         popmean: float=0.0
-        ) -> tuple[np.ndarray, np.ndarray]:
+        ) -> Tuple[np.ndarray, np.ndarray]:
     std_error = np.sqrt(variance / n_sample)
     t_stat = (mean - popmean) / std_error
     p_value = {

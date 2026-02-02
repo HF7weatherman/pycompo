@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 import xarray as xr
 import numpy as np
 
@@ -69,10 +69,10 @@ def calc_sphere_laplacian(
 # --------------------------------
 def add_featcen_coords(
         coords_sphere: xr.Dataset,
-        feature_data_in: list[xr.Dataset],
+        feature_data_in: List[xr.Dataset],
         feature_props: xr.Dataset,
         feature_ellipse: dict,
-        ) -> list[xr.Dataset]:
+        ) -> List[xr.Dataset]:
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         data = feature_data_in[idx]
@@ -97,7 +97,7 @@ def featcen_sphere_coords(
         data: xr.Dataset,
         centroid_idx: xr.Dataset,
         ) -> xr.Dataset:
-    centroid_coords = _get_centroid_coords(coords_sphere, centroid_idx)
+    centroid_coords = get_centroid_coords(coords_sphere, centroid_idx)
     centroid_lat = centroid_coords.sel(component='lat').values
     centroid_lon = centroid_coords.sel(component='lon').values
     
@@ -127,7 +127,7 @@ def featcen_cart_coords(data: xr.Dataset) -> xr.Dataset:
 def rota_featcen_cart_coords(
         data: xr.Dataset,
         rot_angle_rad: xr.DataArray,
-        ) -> list[xr.Dataset]:
+        ) -> List[xr.Dataset]:
     data['rota_featcen_x'], data['rota_featcen_y'] = \
         _calc_rota_featcen_cart_coords(
             data['featcen_x'], data['featcen_y'], rot_angle_rad,
@@ -167,7 +167,7 @@ def ellipse_norm_rota2_featcen_cart_coords(
         data: xr.Dataset,
         winds: xr.Dataset,
         polar_angle_rad: xr.DataArray,
-        ) -> list[xr.Dataset]:
+        ) -> List[xr.Dataset]:
     wind_angle_rad = np.arctan2(winds['bg_vas'], winds['bg_uas'])
     rot_angle_rad = wind_angle_rad - polar_angle_rad
     
@@ -177,6 +177,13 @@ def ellipse_norm_rota2_featcen_cart_coords(
             rot_angle_rad,
             )
     return data
+
+
+def get_centroid_coords(
+        coords_sphere: xr.Dataset,
+        centroid_idx: xr.DataArray
+        ) -> xr.DataArray:
+    return centroid_idx * coords_sphere['dsphere'] + coords_sphere['origin']
 
 
 # ------------------------------------------------------------------------------
@@ -203,13 +210,6 @@ def _adjust_lon_jump(
     else:
         raise ValueError("Please doublecheck what's going on here!")
     return data_lon
-
-
-def _get_centroid_coords(
-        coords_sphere: xr.Dataset,
-        centroid_idx: xr.DataArray
-        ) -> xr.DataArray:
-    return centroid_idx * coords_sphere['dsphere'] + coords_sphere['origin']
 
 
 def _ax_cart_endpoints2length(endpoints: xr.DataArray) -> np.ndarray:

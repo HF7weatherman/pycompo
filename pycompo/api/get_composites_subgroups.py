@@ -7,7 +7,7 @@ from pandas import date_range
 
 import pycompo.core.composite as pccompo
 import pycompo.core.utils as pcutils
-import pycompo.core.significance_testing as pcsig
+import pycompo.core.sigtest as pcsig
 
 warnings.filterwarnings(action='ignore')
 

@@ -3,7 +3,7 @@ import xarray as xr
 from typing import Tuple
 
 from pycompo.core.coord import _calc_rota_featcen_cart_coords
-from pycompo.core.coord import _get_centroid_coords
+from pycompo.core.coord import get_centroid_coords
 from pycompo.core.coord import KM_PER_DEGREE_EQ
 
 
@@ -145,7 +145,7 @@ def _ellipse_idx2sphere(
         ellipse_idx: xr.Dataset,
         coords_sphere: xr.Dataset,
     ) -> xr.Dataset:    
-    centr_sphere = _get_centroid_coords(coords_sphere, ellipse_idx['centroid'])
+    centr_sphere = get_centroid_coords(coords_sphere, ellipse_idx['centroid'])
     polar_angle_rad_sphere = ellipse_idx['polar_angle_rad']
     maj_end_sphere = ellipse_idx['maj_end'] * coords_sphere['dsphere']
     min_end_sphere = ellipse_idx['min_end'] * coords_sphere['dsphere']
