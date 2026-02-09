@@ -55,7 +55,7 @@ def main():
         inpath = Path(config['data']['inpaths'][var])
         in_pattern = f"{config['exp']}_tropical_{var}_*.nc"
         infiles.extend(sorted([str(f) for f in inpath.rglob(in_pattern)]))
-    dset = xr.open_mfdataset(infiles, parallel=True).squeeze()
+    dset = xr.open_mfdataset(infiles, parallel=False).squeeze()
     
     n_new_files = 0
     for i in range (len(analysis_times)-1):

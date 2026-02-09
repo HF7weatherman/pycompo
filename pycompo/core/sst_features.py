@@ -50,7 +50,7 @@ def _get_sst_features(
     # Initialisation
     features_list, radii_list, areas_list, times_list = ([] for _ in range(4))
     total_features = 0
-    cell_area = data['cell_area']
+    cell_area = get_cells_area(data)
     
     def _get_sst_features_single_timestep(data, type, threshold):
         nonlocal total_features

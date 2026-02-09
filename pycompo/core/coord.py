@@ -46,7 +46,7 @@ def calc_sphere_gradient_laplacian(
     dset[f'{feature_var}_laplacian'] = laplacian
     for var in dset.data_vars:
         dset[var] = dset[var].where(
-            ~np.isnan(dset[f'{feature_var}_laplacian']), np.NaN
+            ~np.isnan(dset[f'{feature_var}_laplacian']), np.nan
             )
     return dset
 
@@ -59,7 +59,7 @@ def calc_sphere_laplacian(
         compute_laplacian_on_latlon(dset[feature_var])
     for var in dset.data_vars:
         dset[var] = dset[var].where(
-            ~np.isnan(dset[f'{feature_var}_laplacian']), np.NaN
+            ~np.isnan(dset[f'{feature_var}_laplacian']), np.nan
             )
     return dset
 
