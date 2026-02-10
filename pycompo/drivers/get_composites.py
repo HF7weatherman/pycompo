@@ -92,9 +92,15 @@ def run_get_composites(
             if features_alltrops[v].ndim == 3
             ]
     
-        alltrops_compo.append(features_alltrops.mean(dim='feature'))
-        alltrops_var.append(features_alltrops.var(dim='feature', ddof=1))
-        alltrops_N_features.append(features_alltrops.sizes['feature'])
+        alltrops_compo.append(
+            features_alltrops.drop_vars("time").mean(dim='feature')
+            )
+        alltrops_var.append(
+            features_alltrops.drop_vars("time").var(dim='feature', ddof=1)
+            )
+        alltrops_N_features.append(
+            features_alltrops.drop_vars("time").sizes['feature']
+            )
 
         # read in population means
         infile = inpath_popms/Path(
@@ -109,9 +115,15 @@ def run_get_composites(
             features_rainbelt = pccompo.sample_features_geomask(
                 features_alltrops, rainbelt,
                 )
-            rainbelt_compo.append(features_rainbelt.mean(dim='feature'))
-            rainbelt_var.append(features_rainbelt.var(dim='feature', ddof=1))
-            rainbelt_N_features.append(features_rainbelt.sizes['feature'])
+            rainbelt_compo.append(
+                features_rainbelt.drop_vars("time").mean(dim='feature')
+                )
+            rainbelt_var.append(
+                features_rainbelt.drop_vars("time").var(dim='feature', ddof=1)
+                )
+            rainbelt_N_features.append(
+                features_rainbelt.drop_vars("time").sizes['feature']
+                )
 
             # read in population means
             infile = inpath_popms/Path(

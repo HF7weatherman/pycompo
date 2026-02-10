@@ -17,7 +17,7 @@ export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
 #FLAG_FILE="${OUTPATH}/${1}/features/getting_features.flag"
 #touch ${FLAG_FILE}
 
-jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
+jobid1=$(sbatch --parsable --constraint=${node_size} <<'EOF'
 #!/bin/bash
 #SBATCH --account=mh0731
 #SBATCH --partition=compute
@@ -26,21 +26,32 @@ jobid1=$(sbatch --parsable --constraint=${node_size} <<EOF
 #SBATCH --nodes=1
 #SBATCH --time=08:00:00
 #SBATCH --requeue
-#SBATCH --signal=SIGUSR1@300
 #SBATCH --job-name="get_features"
 #SBATCH --output=LOG/get_features.%j.out
 #SBATCH --error=LOG/get_features.%j.out
 #SBATCH --export=ALL
 
 source ~/.bashrc
-micromamba activate TRR181L4_old
+micromamba activate TRR181L4
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-trap 'echo "Time limit reached, exiting cleanly"; exit 99' SIGUSR1
+(
+  while true; do
+    sleep 60  # check every 60 seconds
+    # Get remaining time in minutes (Slurm format: HH:MM)
+    rem=$(squeue -j $SLURM_JOB_ID -h -o %L | awk -F: '{print $1*60+$2}')
+    echo $rem
+    if [[ $rem -lt 180 ]]; then
+      echo "Time limit almost reached, requeueing..."
+      scontrol requeue $SLURM_JOB_ID
+      exit 99
+    fi
+  done
+) &
 
 python3 "${RUNFILE1}" "${CONFIG_FILE}"
 EOF
@@ -61,7 +72,7 @@ jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobi
 #SBATCH --export=ALL
 
 source ~/.bashrc
-micromamba activate TRR181L4_old
+micromamba activate TRR181L4
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -87,7 +98,7 @@ jobid3=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobi
 #SBATCH --export=ALL
 
 source ~/.bashrc
-micromamba activate TRR181L4_old
+micromamba activate TRR181L4
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1

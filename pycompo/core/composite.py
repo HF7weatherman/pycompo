@@ -212,7 +212,7 @@ def get_rainbelt(
     inpath = Path(config['data']['inpaths']['pr'])
     in_pattern = f"{config['exp']}_tropical_pr_*.nc"
     infiles = sorted([str(f) for f in inpath.rglob(in_pattern)])
-    pr_clim = xr.open_mfdataset(infiles, parallel=True).squeeze()['pr']
+    pr_clim = xr.open_mfdataset(infiles).squeeze()['pr']
 
     # build climatology
     if config['composite']['rainbelt_subsampling']['mode'] == 'roll_avg_clim':
