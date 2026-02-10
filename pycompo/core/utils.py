@@ -1,7 +1,8 @@
 import math
-import numpy as np
 import yaml
+import numpy as np
 import xarray as xr
+from pandas import date_range
 
 
 def read_yaml_config(file_path: str) -> dict:
@@ -80,7 +81,7 @@ def get_subgroup_vars_dict(config: dict) -> dict:
 
 # DATA PREPROCESSING UTILITIES
 # ----------------------------
-def subsample_analysis_data(
+def subsample_data(
         dset: xr.DataArray | xr.Dataset,
         start_time: np.datetime64,
         end_time: np.datetime64,
@@ -143,3 +144,22 @@ def add_timelag_idx_space(
             )
         dset_2['time'] = dset_1['time']
         return xr.merge([dset_1, dset_2])
+    
+
+# ------------------------------------------------------------------------------
+# New utils
+# ---------
+def create_analysis_times(config: dict) -> list[np.datetime64]:
+    start_time = config['data']['analysis_time'][0]
+    end_time = config['data']['analysis_time'][1]
+    analysis_times = [
+        np.datetime64(t) for t in date_range(
+            np.datetime64(start_time), np.datetime64(end_time), freq='MS',
+            )
+        ]
+    return analysis_times
+
+
+def create_ftime_str(start_time: np.datetime64, end_time: np.datetime64) -> str:
+    return f"{np_datetime2file_datestr(start_time)}-" + \
+            f"{np_datetime2file_datestr(end_time)}"
