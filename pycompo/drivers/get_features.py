@@ -18,7 +18,7 @@ import pycompo.core.wind as pcwind
 from pycompo.core.composite import get_rainbelt, get_compo_coords_ds
 from pycompo.core.ellipse import get_ellipse_params
 from pycompo.core.feature_cutout import get_featcen_data_cutouts
-from pycompo.core.significance_testing import calc_popmeans
+from pycompo.core.sigtest import calc_popmeans
 
 warnings.filterwarnings(action='ignore')
 
@@ -94,6 +94,8 @@ def main():
         if 'ts_bg' in dfilter and 'tas_bg' in dfilter:
             dfilter['tas-ts_bg'] = dfilter['tas_bg'] - dfilter['ts_bg']
             merge_dsets.append(dfilter['tas-ts_bg'])
+        if 'sfc_rho_bg' in dfilter:
+            merge_dsets.append(dfilter['sfc_rho_bg'])
         
         dsample = xr.merge(merge_dsets)
 
@@ -102,6 +104,12 @@ def main():
             dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
+        if 'ps' in config['data']['study_vars']:
+            if config['composite']['type'] == 'anomaly':
+                dsample = pccoord.calc_sphere_laplacian(dsample, 'ps_ano')
+            elif config['composite']['type'] == 'absolute':
+                dsample = pccoord.calc_sphere_laplacian(dsample, 'ps')
+                
         dsample['cell_area'] = get_cells_area(dsample)
         dsample = dsample.sel(lat=slice(*config['lat_range']), drop=True)
         
