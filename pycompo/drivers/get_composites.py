@@ -14,9 +14,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
-    config_file = sys.argv[1]
-    config = pcutil.read_yaml_config(config_file)
-
+    config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
     opath.mkdir(parents=True, exist_ok=True)
@@ -42,7 +40,7 @@ def build_yearly_compo_pvalue(
         compo: list[xr.Dataset],
         popmeans: list[xr.Dataset],
         variance: list[xr.Dataset],
-        N_features: np.float64,
+        N_features: list[np.float64],
         ) -> Tuple[xr.Dataset, xr.Dataset]:
     popmeans_merged = xr.concat(popmeans, dim='month').mean(dim='month')
     compo_merged = xr.concat(compo, dim='month')
