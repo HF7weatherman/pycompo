@@ -312,6 +312,19 @@ def get_binned_features(
     return compo_bin, var_bin, N_feats_bin
 
 
+def get_full_binend_compos(
+        compo_bin: list[dict],
+        ) -> xr.Dataset:
+    compo_bin_dict = {key: [d[key] for d in compo_bin] for key in compo_bin[0]}
+    for key, data in compo_bin_dict.items():
+        compo_bin_dict[key] = xr.concat(data, dim='month').mean(dim='month')
+        
+    compo_bin_array = xr.concat(
+        compo_bin_dict.values(), dim='bin', coords='minimal', compat='override',
+        ).assign_coords(bin=list(compo_bin_dict.keys()))
+    return compo_bin_array
+
+
 def get_full_quartile_compos(
         quartile_compo: list[dict],
         ) -> xr.Dataset:

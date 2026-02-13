@@ -5,15 +5,14 @@ from pathlib import Path
 
 import pycompo.core.composite as pccompo
 import pycompo.core.utils as pcutil
+from pycompo.core.sst_features import calc_asprat_idx
 
 warnings.filterwarnings(action='ignore')
 
 
 # ------------------------------------------------------------------------------
 def main():
-    config_file = sys.argv[1]
-    config = pcutil.read_yaml_config(config_file)
-
+    config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     ana_times = pcutil.create_analysis_times(config)
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
@@ -51,6 +50,7 @@ def main():
     for start_time, end_time in zip(ana_times, ana_times[1:]):
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         ifile = ipath/Path(f"{ana_idf}_features_{fdate_str}.nc")
+        feats_at['asprat_idx'] = calc_asprat_idx(feats_at)
         feats_at = xr.open_dataset(ifile).compute()
         
         for var, thresholds in subgroup_vars.items():
@@ -73,15 +73,14 @@ def main():
     # merge to a full feature composite
     # ---------------------------------
     for var in subgroup_vars:
-        subcompo_at[var] = pccompo.get_full_quartile_compos(subcompo_at[var])
-        ofile = Path(f"{ana_idf}_composite_alltrops_{var}_quartiles.nc")
-        subcompo_at[var].to_netcdf(str(opath/ofile))
+        compo_bin_at[var] = pccompo.get_full_binned_compos(compo_bin_at[var])
+        ofile = Path(f"{ana_idf}_composite_alltrops_{var}_binned.nc")
+        compo_bin_at[var].to_netcdf(str(opath/ofile)) #type:ignore
             
-    if rainbelt_switch:
-        for var in subgroup_vars:
-            subcompo_rb[var] = pccompo.get_full_quartile_compos(subcompo_rb[var])
-            ofile = Path(f"{ana_idf}_composite_rainbelt_{var}_quartiles.nc")
-            subcompo_rb[var].to_netcdf(str(opath/ofile))
+        if rainbelt_switch:
+            compo_bin_rb[var] = pccompo.get_full_binned_compos(compo_bin_rb[var])
+            ofile = Path(f"{ana_idf}_composite_rainbelt_{var}_binned.nc")
+            compo_bin_rb[var].to_netcdf(str(opath/ofile)) #type:ignore
 
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
