@@ -278,3 +278,7 @@ def _calc_feature_bg_field(
     feature_props[f'bg_{var}'] = ('feature', bg_field)
 
     return feature_props
+
+
+def calc_asprat_idx(featprops: xr.Dataset) -> xr.DataArray:
+    return featprops['axis_major_length_idx']/featprops['axis_minor_length_idx']
