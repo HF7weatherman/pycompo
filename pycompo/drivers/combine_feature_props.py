@@ -37,22 +37,20 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
         if rainbelt_switch:
             features_rb = sample_features_geomask(features_at, rainbelt)
             featprops_rb.append(features_rb[KEEP_PROPS])
-
-        # Basin-based geographic subsampling
-        # TODO: Implement basin-based geographical subsampling
         
     featprops_at = xr.concat(set_global_feature_id(featprops_at), dim='feature')
-    featprops_rb = xr.concat(set_global_feature_id(featprops_rb), dim='feature')
     featprops_at.to_netcdf(str(outfiles['alltrops']))
-    if rainbelt_switch: featprops_rb.to_netcdf(str(outfiles['rainbelt']))
+    if rainbelt_switch:
+        featprops_rb = xr.concat(
+            set_global_feature_id(featprops_rb), dim='feature',
+            )
+        featprops_rb.to_netcdf(str(outfiles['rainbelt']))
 
 
 # ------------------------------------------------------------------------------
 # run script
 # ----------
-config_file = sys.argv[1]
-config = pcutil.read_yaml_config(config_file)
-
+config = pcutil.read_yaml_config(sys.argv[1])
 ana_idf = f"{config['exp']}_{config['pycompo_name']}"
 opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
 opath.mkdir(parents=True, exist_ok=True)

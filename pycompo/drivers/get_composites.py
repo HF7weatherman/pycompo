@@ -14,9 +14,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
-    config_file = sys.argv[1]
-    config = pcutil.read_yaml_config(config_file)
-
+    config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
     opath.mkdir(parents=True, exist_ok=True)
@@ -34,7 +32,7 @@ def main():
         ofiles_exist = ofiles_exist and ofiles['rainbelt_compo'].exists()
 
     if not ofiles_exist:
-        print("Combining feature properties from all time steps ...")
+        print("Building the composites...")
         run_get_composites(config, ofiles)
 
 
