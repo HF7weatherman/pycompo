@@ -21,18 +21,9 @@ def main():
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
     opath.mkdir(parents=True, exist_ok=True)
 
-    # --------------------------------------------------------------------------
-    # preparations for composite subsampling
-    # --------------------------------------
-    ipath = Path(f"{config['data']['outpath']}/{ana_idf}/")
-    ifile = Path(f"{ana_idf}_feature_props_alltrops_all.nc")
-    featprops_at = xr.open_dataset(str(ipath/ifile))
-
     if config['composite']['rainbelt_subsampling']['switch']:
         rainbelt = pccompo.get_rainbelt(ana_times, config, quantile=0.8)
         rainbelt = rainbelt.compute()
-        ifile = Path(f"{ana_idf}_feature_props_rainbelt_all.nc")
-        featprops_rb = xr.open_dataset(str(ipath/ifile))
 
 
     # --------------------------------------------------------------------------
