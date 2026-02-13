@@ -37,6 +37,7 @@ COMPO_PLOT_LABEL = {
     'cli': 'cloud ice water',
     'pfull': 'pressure',
     'ts_ano': 'surface temperature',
+    'ts_ano_detect': 'surface temperature',
     'dts_ano_dx': 'downwind sfc. temp. gradient',
     'dts_ano_dy': 'crosswind sfc. temp. gradient',
     'ts_ano_laplacian': 'sfc. temperature Laplacian',
@@ -63,6 +64,7 @@ COMPO_PLOT_LABEL = {
     'clw_ano': 'cloud liquid water',
     'cli_ano': 'cloud ice water',
     'pfull_ano': 'pressure',
+    'mse_e_ano': 'moist static energy',
 }
 
 COMPO_PLOT_RANGE = {
@@ -93,14 +95,14 @@ COMPO_PLOT_RANGE = {
     'clw': [-2.5, 2.5],
     'cli': [-2.5, 2.5],
     'pfull': [-1., 1.],
-
     'ts_ano': [-0.3, 0.3],
+    'ts_ano_detect': [-0.3, 0.3],
     'dts_ano_dx': [-0.5, 0.5],
     'dts_ano_dy': [-0.5, 0.5],
     'ts_ano_laplacian': [-12, 12],
     'downwind_ts_ano_grad': [-0.7, 0.7],
     'crosswind_ts_ano_grad': [-0.7, 0.7],
-    'tas_ano': [-0.3, 0.3],
+    'tas_ano': [-0.05, 0.05],
     'pr_ano': [-1.5, 1.5],
     'hfls_ano': [-6, 6],
     'hfss_ano': [-1.5, 1.5],
@@ -112,15 +114,16 @@ COMPO_PLOT_RANGE = {
     'uas_ano': [-0.12, 0.12],
     'vas_ano': [-0.12, 0.12],
     'sfcwind_ano': [-0.06, 0.06],
-    'sfcwind_conv_ano': [-1.3, 1.3],
+    'sfcwind_conv_ano': [-0.6, 0.6],
     'ta_ano': [-0.05, 0.05],
     'ua_ano': [-0.1, 0.1],
     'va_ano': [-0.1, 0.1],
-    'wa_ano': [-2.5, 2.5],
+    'wa_ano': [-1.5, 1.5],
     'hus_ano': [-30., 30.],
     'clw_ano': [-2.5, 2.5],
-    'cli_ano': [-2.5, 2.5],
-    'pfull_ano': [-1., 1.],
+    'cli_ano': [-0.005, 0.005],
+    'pfull_ano': [-0.5, 0.5],
+    'mse_e_ano': [-80, 80],
 }
 
 CLABEL = {
@@ -152,6 +155,7 @@ CLABEL = {
     'cli': 'cli / mg kg-1',
     'pfull': "pfull / Pa",
     'ts_ano': "ts_ano / K",
+    'ts_ano_detect': "ts_ano_detect / K",
     'dts_ano_dx': "dts_ano_dx / K m-1",
     'dts_ano_dy': "dts_ano_dy / K m-1",
     'ts_ano_laplacian': "ts_ano_laplacian / K m-2",
@@ -178,6 +182,7 @@ CLABEL = {
     'clw_ano': 'clw_ano / mg kg-1',
     'cli_ano': 'cli_ano / mg kg-1',
     'pfull_ano': "pfull_ano / Pa",
+    'mse_e_ano': "mse_e_ano / J kg-1",
 }
 
 
@@ -210,6 +215,7 @@ CLABEL_NICE = {
     'cli': "mg$\,$kg$^{-1}$",
     'pfull': "Pa",
     'ts_ano': "K",
+    'ts_ano_detect': "K",
     'dts_ano_dx': "K$\,$/$\,$100$\,$km",
     'dts_ano_dy': "K$\,$/$\,$100$\,$km",
     'ts_ano_laplacian': "K$\,$/$\,$100$\,$km$^{2}$",
@@ -236,6 +242,7 @@ CLABEL_NICE = {
     'clw_ano': "mg$\,$kg$^{-1}$",
     'cli_ano': "mg$\,$kg$^{-1}$",
     'pfull_ano': "Pa",
+    'mse_e_ano': "J$\,$kg$^{-1}$",
 }
 
 
@@ -268,6 +275,7 @@ COMPO_PLOT_CMAP = {
     'cli': cmocean.cm.thermal,
     'pfull': cmocean.cm.dense,
     'ts_ano': "RdBu_r",
+    'ts_ano_detect': "RdBu_r",
     'dts_ano_dx': "RdBu_r",
     'dts_ano_dy': "RdBu_r",
     'ts_ano_laplacian': "RdBu_r",
@@ -294,6 +302,7 @@ COMPO_PLOT_CMAP = {
     'clw_ano': 'RdBu_r',
     'cli_ano': 'RdBu_r',
     'pfull_ano': "RdBu_r",
+    'mse_e_ano': "RdBu_r",
 }
 
 
