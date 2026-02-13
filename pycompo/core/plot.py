@@ -668,6 +668,32 @@ def plot_compo_crosssection(
 
 
 # ------------------------------------------------------------------------------
+# Feature density
+# ---------------
+def _get_bin_centers(bin_edges: np.ndarray) -> np.ndarray:
+    return (bin_edges[:-1] + bin_edges[1:]) / 2
+
+
+def calc_SST_feature_density(
+        featprops: xr.Dataset,
+        lat_bins: np.ndarray=np.arange(-20, 20, 1),
+        lon_bins: np.ndarray=np.arange(-180, 181, 1),
+        ) -> xr.Dataset:
+    counts, _, _ = np.histogram2d(
+        featprops['centroid_sphere'][:, 0], featprops['centroid_sphere'][:, 1],
+        bins=[lat_bins, lon_bins],
+        )
+    lat_center = _get_bin_centers(lat_bins)
+    lon_center = _get_bin_centers(lon_bins)
+
+    return xr.Dataset({
+        'feature_density': (['lat', 'lon'], counts),
+        'lat': (['lat'], lat_center),
+        'lon': (['lon'], lon_center),
+        })
+
+
+# ------------------------------------------------------------------------------
 # Helper functions
 # ----------------
 def _plot_feature_ellipse(
