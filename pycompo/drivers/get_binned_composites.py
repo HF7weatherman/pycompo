@@ -20,15 +20,18 @@ def main():
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
     subgroup_vars = pcutil.get_subgroup_vars_dict(config)
 
+    print(f"Process experiment {config['exp']}...")
+    print(" ")
+
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
     opath.mkdir(parents=True, exist_ok=True)
     ofile_at = {
         'compo': {
-            var: Path(f"{ana_idf}_composite_alltrops_{var}_binned.nc")
+            var: opath/Path(f"{ana_idf}_composite_alltrops_{var}_binned.nc")
             for var in subgroup_vars
             },
         'pvalue': {
-            var: Path(f"{ana_idf}_pvalue_alltrops_{var}_binned.nc")
+            var: opath/Path(f"{ana_idf}_pvalue_alltrops_{var}_binned.nc")
             for var in subgroup_vars
             },
     }
@@ -39,11 +42,11 @@ def main():
     if rainbelt_switch:
         ofile_rb = {
             'compo': {
-                var: Path(f"{ana_idf}_composite_rainbelt_{var}_binned.nc")
+                var: opath/Path(f"{ana_idf}_composite_rainbelt_{var}_binned.nc")
                 for var in subgroup_vars
                 },
             'pvalue': {
-                var: Path(f"{ana_idf}_pvalue_rainbelt_{var}_binned.nc")
+                var: opath/Path(f"{ana_idf}_pvalue_rainbelt_{var}_binned.nc")
                 for var in subgroup_vars
                 },
         }
@@ -53,7 +56,9 @@ def main():
     
     if not ofiles_exist:
         print("Calculate binned composites...")
-        run_get_binned_composites(config, ofile_at, ofile_rb if rainbelt_switch else None)
+        run_get_binned_composites(
+            config, ofile_at, ofile_rb if rainbelt_switch else None
+            )
 
 
 def run_get_binned_composites(
@@ -130,8 +135,8 @@ def run_get_binned_composites(
                 compo_bin_at[var], var_bin_at[var], N_feats_bin_at[var], 
                 popmeans_at,
                 )
-        compo_bin_at[var].to_netcdf(str(opath/ofile_at['compo'][var])) #type:ignore
-        pvalue_bin_at[var].to_netcdf(str(opath/ofile_at['pvalue'][var])) #type:ignore
+        compo_bin_at[var].to_netcdf(str(ofile_at['compo'][var])) #type:ignore
+        pvalue_bin_at[var].to_netcdf(str(ofile_at['pvalue'][var])) #type:ignore
             
         if rainbelt_switch:
             compo_bin_rb[var], pvalue_bin_rb[var] = \
@@ -139,8 +144,8 @@ def run_get_binned_composites(
                 compo_bin_rb[var], var_bin_rb[var], N_feats_bin_rb[var], 
                 popmeans_rb,
                 )
-            compo_bin_rb[var].to_netcdf(str(opath/ofile_rb['compo'][var])) #type:ignore
-            pvalue_bin_rb[var].to_netcdf(str(opath/ofile_rb['pvalue'][var])) #type:ignore
+            compo_bin_rb[var].to_netcdf(str(ofile_rb['compo'][var])) #type:ignore
+            pvalue_bin_rb[var].to_netcdf(str(ofile_rb['pvalue'][var])) #type:ignore
 
 
 def _reorganize_binned_list(in_list: list[dict]) -> dict:
