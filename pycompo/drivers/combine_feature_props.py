@@ -13,8 +13,9 @@ warnings.filterwarnings(action='ignore')
 def run_combine_feature_props(config: dict, outfiles: dict) -> None:
     KEEP_PROPS = [
         'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind',
-        'bg_sfcwind_dir', 'ts_ano_detect_mean', 'axis_major_length_idx', 
-        'axis_minor_length_idx', 'orientation_idx', 'centroid_sphere',
+        'bg_sfcwind_dir', 'bg_tas-ts', 'ts_ano_detect_mean',
+        'axis_major_length_idx', 'axis_minor_length_idx', 'orientation_idx',
+        'centroid_sphere',
         ]
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
@@ -39,12 +40,12 @@ def run_combine_feature_props(config: dict, outfiles: dict) -> None:
             featprops_rb.append(features_rb[KEEP_PROPS])
         
     featprops_at = xr.concat(set_global_feature_id(featprops_at), dim='feature')
-    featprops_at.to_netcdf(str(outfiles['alltrops']))
+    pcutil.sort_ds(featprops_at).to_netcdf(str(outfiles['alltrops']))
     if rainbelt_switch:
         featprops_rb = xr.concat(
             set_global_feature_id(featprops_rb), dim='feature',
             )
-        featprops_rb.to_netcdf(str(outfiles['rainbelt']))
+        pcutil.sort_ds(featprops_rb).to_netcdf(str(outfiles['rainbelt']))
 
 
 # ------------------------------------------------------------------------------

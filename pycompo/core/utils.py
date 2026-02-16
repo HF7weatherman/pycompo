@@ -163,3 +163,12 @@ def create_analysis_times(config: dict) -> list[np.datetime64]:
 def create_ftime_str(start_time: np.datetime64, end_time: np.datetime64) -> str:
     return f"{np_datetime2file_datestr(start_time)}-" + \
             f"{np_datetime2file_datestr(end_time)}"
+
+
+def sort_ds(ds: xr.Dataset) -> xr.Dataset:
+    sorted_vars = sorted(
+        ds.data_vars,
+        key=lambda v: (len(ds[v].dims), v[0].lower())
+        )
+
+    return ds[sorted_vars]

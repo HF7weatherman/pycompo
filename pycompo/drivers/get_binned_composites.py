@@ -135,8 +135,10 @@ def run_get_binned_composites(
                 compo_bin_at[var], var_bin_at[var], N_feats_bin_at[var], 
                 popmeans_at,
                 )
-        compo_bin_at[var].to_netcdf(str(ofile_at['compo'][var])) #type:ignore
-        pvalue_bin_at[var].to_netcdf(str(ofile_at['pvalue'][var])) #type:ignore
+        pcutil.sort_ds(compo_bin_at[var]).\
+            to_netcdf(str(ofile_at['compo'][var]))  #type:ignore
+        pcutil.sort_ds(pvalue_bin_at[var]).\
+            to_netcdf(str(ofile_at['pvalue'][var])) #type:ignore
             
         if rainbelt_switch:
             compo_bin_rb[var], pvalue_bin_rb[var] = \
@@ -144,8 +146,10 @@ def run_get_binned_composites(
                 compo_bin_rb[var], var_bin_rb[var], N_feats_bin_rb[var], 
                 popmeans_rb,
                 )
-            compo_bin_rb[var].to_netcdf(str(ofile_rb['compo'][var])) #type:ignore
-            pvalue_bin_rb[var].to_netcdf(str(ofile_rb['pvalue'][var])) #type:ignore
+            pcutil.sort_ds(compo_bin_rb[var]).\
+                to_netcdf(str(ofile_rb['compo'][var])) #type:ignore
+            pcutil.sort_ds(pvalue_bin_rb[var]).\
+                to_netcdf(str(ofile_rb['pvalue'][var])) #type:ignore
 
 
 def _reorganize_binned_list(in_list: list[dict]) -> dict:

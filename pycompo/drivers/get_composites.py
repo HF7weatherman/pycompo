@@ -104,15 +104,15 @@ def run_get_composites(config: dict, ofiles: dict) -> None:
     at_compo, at_pvalue = build_yearly_compo_pvalue(
         at_compo, at_popmeans, at_var, at_N_feats,
         )
-    at_pvalue.to_netcdf(str(ofiles['alltrops_pvalue']))
-    at_compo.to_netcdf(str(ofiles['alltrops_compo']))
+    pcutil.sort_ds(at_compo).to_netcdf(str(ofiles['alltrops_compo']))
+    pcutil.sort_ds(at_pvalue).to_netcdf(str(ofiles['alltrops_pvalue']))
 
     if rainbelt_switch:
         rb_compo, rb_pvalue = build_yearly_compo_pvalue(
             rb_compo, rb_popmeans, rb_var, rb_N_feats,
             )
-        rb_pvalue.to_netcdf(str(ofiles['rainbelt_pvalue']))
-        rb_compo.to_netcdf(str(ofiles['rainbelt_compo']))
+        pcutil.sort_ds(rb_compo).to_netcdf(str(ofiles['rainbelt_compo']))
+        pcutil.sort_ds(rb_pvalue).to_netcdf(str(ofiles['rainbelt_pvalue']))
 
 
 # ------------------------------------------------------------------------------

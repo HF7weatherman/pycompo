@@ -136,7 +136,9 @@ def main():
         features = pcsst.set_global_feature_id(features)
         features = xr.concat(features, dim='feature')
         features.attrs["identifier"] = ana_idf
-        features.to_netcdf(str(ofile_feat))
+        if 'height_2' in features.coords:
+            features = features.drop_vars('height_2')
+        pcutil.sort_ds(features).to_netcdf(str(ofile_feat))
 
         # clean up
         del dsample
