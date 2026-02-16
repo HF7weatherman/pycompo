@@ -254,15 +254,14 @@ def add_more_feature_props(
     feature_props['centroid_sphere'] = get_centroid_coords(
         orig_coords, feature_props['centroid_idx'],
         )
-    for data in feature_centric_data:
-        if 'tas-ts_bg' in data.data_vars:
-            feature_props = _calc_feature_bg_field(
-                feature_props, feature_centric_data, 'tas-ts',
-                )
-        if 'sfc_rho_bg' in data.data_vars:
-            feature_props = _calc_feature_bg_field(
-                feature_props, feature_centric_data, 'sfc_rho',
-                )
+    if 'tas-ts_bg' in feature_centric_data[0].data_vars:
+        feature_props = _calc_feature_bg_field(
+            feature_props, feature_centric_data, 'tas-ts',
+            )
+    if 'sfc_rho_bg' in feature_centric_data[0].data_vars:
+        feature_props = _calc_feature_bg_field(
+            feature_props, feature_centric_data, 'sfc_rho',
+            )
     return feature_props
 
 
