@@ -305,7 +305,7 @@ def get_binned_features(
         key = f"bin_{var}_{start}-{end}"
         features_bin = features.where(
             (features[var] > start) & (features[var] <= end), drop=True,
-            )
+            ).drop_vars("time")
         compo_bin[key] = features_bin.mean(dim='feature')
         var_bin[key] = features_bin.var(dim='feature', ddof=1)
         N_feats_bin[key] = features_bin.sizes['feature']
