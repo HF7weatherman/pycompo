@@ -123,7 +123,7 @@ def get_field_significance(
                     multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
                 ) if data.ndim == 2 else
                 (
-                    ('x', 'y', 'height'),
+                    ('bin', 'x', 'y'),
                     multiple_hypothesis_test_with_FDR(data.data, alpha_FDR)
                 ) for var, data in pvalue.data_vars.items()
             },
@@ -133,7 +133,7 @@ def get_field_significance(
                 'En_rota2_featcen_y': pvalue['En_rota2_featcen_y']
                 },
             **(
-                {'height': pvalue['height']} if len(pvalue.dims) == 3 else {}
+                {'bin': pvalue['bin']} if len(pvalue.dims) == 3 else {}
                 )
             }
         )
