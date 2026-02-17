@@ -258,10 +258,16 @@ def add_more_feature_props(
         feature_props = _calc_feature_bg_field(
             feature_props, feature_centric_data, 'tas-ts',
             )
+        feature_centric_data = [
+            data.drop_vars(['tas-ts_bg']) for data in feature_centric_data
+            ]
     if 'sfc_rho_bg' in feature_centric_data[0].data_vars:
         feature_props = _calc_feature_bg_field(
             feature_props, feature_centric_data, 'sfc_rho',
             )
+        feature_centric_data = [
+            data.drop_vars(['sfc_rho_bg']) for data in feature_centric_data
+            ]
     return feature_props
 
 
