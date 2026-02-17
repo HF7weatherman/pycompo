@@ -11,6 +11,7 @@ data:
   study_vars:
     - tas
     - pr
+    - sfc_rho
     #- hfls
     #- hfss
     #- rlut
@@ -38,6 +39,7 @@ data:
     rlut: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/rlut_latlon/
     cllvi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/cllvi_latlon/
     clivi: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/clivi_latlon/
+    sfc_rho: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfc_rho_latlon/
     sfcwind: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfcwind_latlon/
     sfcwind_conv: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfcwind_conv_latlon/
     ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ps_latlon/
