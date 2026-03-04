@@ -268,7 +268,18 @@ def add_more_feature_props(
         feature_centric_data = [
             data.drop_vars(['sfc_rho_bg']) for data in feature_centric_data
             ]
-    return feature_props
+    if 'sfcwind_conv_bg' in feature_centric_data[0].data_vars:
+        feature_props = _calc_feature_bg_field(
+            feature_props, feature_centric_data, 'sfcwind_conv',
+            )
+        feature_centric_data = [
+            data.drop_vars(['sfcwind_conv_bg']) for data in feature_centric_data
+            ]
+    if 'pr_bg' in feature_centric_data[0].data_vars:
+        feature_props = _calc_feature_bg_field(
+            feature_props, feature_centric_data, 'pr',
+            )
+    return feature_props, feature_centric_data
 
 
 def _calc_feature_bg_field(

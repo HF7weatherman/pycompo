@@ -30,6 +30,10 @@ def get_ellipse_params(
     }
 
 
+def get_ellipse_equiv_radius(ax_maj, ax_min):
+    return np.sqrt(ax_maj * ax_min)
+
+
 # ------------------------------------------------------------------------------
 # Get ellipse parameters in index space from skimage output
 # ---------------------------------------------------------

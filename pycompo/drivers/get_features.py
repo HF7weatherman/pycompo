@@ -96,6 +96,10 @@ def main():
             merge_dsets.append(dfilter['tas-ts_bg'])
         if 'sfc_rho_bg' in dfilter:
             merge_dsets.append(dfilter['sfc_rho_bg'])
+        if 'pr_bg' in dfilter:
+            merge_dsets.append(dfilter['pr_bg'])
+            dfilter['pr_fraction'] = dfilter['pr_ano']/dfilter['pr_bg']
+            merge_dsets.append(dfilter['pr_fraction'])
         
         dsample = xr.merge(merge_dsets)
 
@@ -184,7 +188,9 @@ def process_one_timestep(
     featprops = pcwind.calc_feature_bg_wind(
         featprops, featdata, config['data']['wind_vars'],
         )
-    featprops = pcsst.add_more_feature_props(featprops, featdata, orig_coords)
+    featprops, featdata = pcsst.add_more_feature_props(
+        featprops, featdata, orig_coords,
+        )
     
     # coordinate transformation
     feature_ellipse = get_ellipse_params(featprops, orig_coords)
