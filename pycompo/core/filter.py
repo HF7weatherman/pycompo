@@ -211,8 +211,12 @@ def gaussian_lowpass_filter(
     sigmas = [sigma_y, sigma_x]
     while len(sigmas) < n_dims: sigmas.append(0)
 
+    # Mode for filtering
+    modes = ['reflect', 'wrap']
+    while len(modes) < n_dims: modes.append('nearest')
+
     return list(dset.dims), gaussian_filter(
-        dset, sigma=sigmas, truncate=truncation
+        dset, sigma=sigmas, truncate=truncation, mode=modes,
         )
 
 
