@@ -192,10 +192,15 @@ def process_one_timestep(
         featprops, featdata, orig_coords,
         )
     
+    # create feature ellipse and filter with respect to aspect ratio
+    featellipse = get_ellipse_params(featprops, orig_coords)
+    featdata, featprops, featellipse = pcsst.filter_asprat(
+        featdata, featprops, featellipse, max_asprat=config['feature']['max_ar']
+        )
+
     # coordinate transformation
-    feature_ellipse = get_ellipse_params(featprops, orig_coords)
     featdata = pccoord.add_featcen_coords(
-        orig_coords, featdata, featprops, feature_ellipse,
+        orig_coords, featdata, featprops, featellipse,
         )
     featdata = pcwind.add_wind_grads(featdata, featprops, grad_var)
     featdata = pcwind.add_rotate_winds(featdata, featprops)
