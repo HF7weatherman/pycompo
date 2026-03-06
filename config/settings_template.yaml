@@ -80,6 +80,7 @@ feature:
   threshold: 0.15 # in K, negative for cold features, positive for warm features
   connectivity: 8
   min_area: 400.0
+  max_ar: 5.
   property_list:
     - centroid
     - axis_major_length

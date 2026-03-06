@@ -19,6 +19,7 @@ def extract_sst_features(
         threshold: float,
         connectivity: int,
         min_area: float,
+        max_ar: float,
         property_list: List[str],
         ) -> Tuple[xr.DataArray, xr.Dataset]:
     feature_map, basic_feature_props = _get_sst_features(
@@ -298,3 +299,25 @@ def _calc_feature_bg_field(
 
 def calc_asprat_idx(featprops: xr.Dataset) -> xr.DataArray:
     return featprops['axis_major_length_idx']/featprops['axis_minor_length_idx']
+
+
+def _calc_ellipse_asprat(ellipse_data):
+    return ellipse_data['maj_end'][:, 1]/ellipse_data['min_end'][:, 0]
+
+
+def filter_asprat(feature_data, feature_props, feature_ellipse, max_asprat=5):
+    feature_props['asprat_cart'] = \
+        _calc_ellipse_asprat(feature_ellipse['rota_featcen_cart'])
+    mask = feature_props['asprat_cart'] < max_asprat
+
+    feature_ellipse = {
+        k: v.where(mask, drop=True) for k, v in feature_ellipse.items()
+        }
+    feature_props = feature_props.where(mask, drop=True)
+
+    keep = set(feature_props['feature_id'].values)
+    feature_data[:] = [
+        d for d in feature_data if d['feature_id'].values.item() in keep
+        ]
+
+    return feature_data, feature_props, feature_ellipse
