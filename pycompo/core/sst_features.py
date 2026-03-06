@@ -6,8 +6,9 @@ from typing import Tuple, List
 from grid_toolbox.basic_latlon import get_cells_area
 
 from pycompo.core.clusters import get_clusters, get_clusters_areas
-from pycompo.core.utils import area_weighted_avg
 from pycompo.core.coord import get_centroid_coords
+from pycompo.core.ellipse import calc_ellipse_asprat
+from pycompo.core.utils import area_weighted_avg
 
 
 # ------------------------------------------------------------------------------
@@ -206,21 +207,8 @@ def _build_structure_element(connectivity: int=4) -> list:
 
 
 # ------------------------------------------------------------------------------
-# Update generic feature information based on selected features
-# -------------------------------------------------------------
-def _update_features(
-        feature_map: xr.DataArray,
-        feature_props: xr.Dataset,
-        feature_data: List[xr.Dataset],
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
-    keep_features = [int(data['feature_id'].values) for data in feature_data]
-    feature_props = feature_props.where(
-        feature_props['feature_id'].isin(keep_features), drop=True,
-        )
-    feature_map = _update_feature_map(feature_map, feature_props)
-    return feature_map, feature_props
-
-
+# Helper functions
+# ----------------
 def _update_feature_map(
     feature_map: xr.DataArray,
     feature_props: xr.Dataset,
@@ -230,9 +218,6 @@ def _update_feature_map(
         )
 
 
-# ------------------------------------------------------------------------------
-# Helper functions
-# ----------------
 def set_global_feature_id(feature_list: list) -> list:
     global_feature_id = 1
     for idx, feature in enumerate(feature_list):
@@ -297,17 +282,9 @@ def _calc_feature_bg_field(
     return feature_props
 
 
-def calc_asprat_idx(featprops: xr.Dataset) -> xr.DataArray:
-    return featprops['axis_major_length_idx']/featprops['axis_minor_length_idx']
-
-
-def _calc_ellipse_asprat(ellipse_data):
-    return ellipse_data['maj_end'][:, 1]/ellipse_data['min_end'][:, 0]
-
-
 def filter_asprat(feature_data, feature_props, feature_ellipse, max_asprat=5):
     feature_props['asprat_cart'] = \
-        _calc_ellipse_asprat(feature_ellipse['rota_featcen_cart'])
+        calc_ellipse_asprat(feature_ellipse['rota_featcen_cart'])
     mask = feature_props['asprat_cart'] < max_asprat
 
     feature_ellipse = {

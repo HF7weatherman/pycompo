@@ -180,9 +180,6 @@ def _ellipse_sphere2featcen_cart(
     centroid_cart = ellipse_sphere['centroid'] * 0.
     maj_end_cart = ellipse_sphere['maj_end'] * dcart
     min_end_cart = ellipse_sphere['min_end'] * dcart
-#    polar_angle_rad_cart = np.arctan(
-#        maj_end_cart.sel(component='lat') / maj_end_cart.sel(component='lon')
-#        )
     polar_angle_rad_cart = ellipse_sphere['polar_angle_rad']
     
     coords = ellipse_sphere.assign_coords(
@@ -233,6 +230,10 @@ def _calc_ellipse_rota_cart(
 # ------------------------------------------------------------------------------
 # Helper functions
 # ----------------
+def calc_ellipse_asprat(ellipse_data):
+    return ellipse_data['maj_end'][:, 1]/ellipse_data['min_end'][:, 0]
+
+
 def _create_ellipse_dataset(
         centroid, polar_angle_rad, maj_end, min_end, coords,
         ):
