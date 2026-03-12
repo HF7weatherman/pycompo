@@ -2,8 +2,7 @@ from typing import Tuple, List
 import xarray as xr
 import numpy as np
 
-from grid_toolbox.spherical_derivatives_latlon import \
-    compute_gradient_and_laplacian_on_latlon, compute_laplacian_on_latlon
+import grid_toolbox.spherical_derivatives_latlon as spherderiv
 
 KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 
@@ -38,7 +37,7 @@ def calc_sphere_gradient_laplacian(
         dset: xr.DataArray | xr.Dataset,
         feature_var: str,
         ) -> xr.Dataset:
-    gradient, laplacian = compute_gradient_and_laplacian_on_latlon(
+    gradient, laplacian = spherderiv.compute_gradient_and_laplacian_on_latlon(
         dset[feature_var]
         )
     dset[f'd{feature_var}_dx'] = gradient[0]
@@ -56,11 +55,23 @@ def calc_sphere_laplacian(
         feature_var: str,
         ) -> xr.Dataset:
     dset[f'{feature_var}_laplacian'] = \
-        compute_laplacian_on_latlon(dset[feature_var])
+        spherderiv.compute_laplacian_on_latlon(dset[feature_var])
     for var in dset.data_vars:
         dset[var] = dset[var].where(
             ~np.isnan(dset[f'{feature_var}_laplacian']), np.nan
             )
+    return dset
+
+
+def calc_sphere_convergence_components(
+        dset: xr.DataArray | xr.Dataset,
+        wind_vars: Tuple[str, str],
+        ) -> xr.Dataset:
+    conv_compos = spherderiv.compute_hor_wind_conv_components_on_latlon(
+        dset[wind_vars[0]], dset[wind_vars[1]],
+        )
+    dset[f'{wind_vars[0]}_conv'] = conv_compos[0]
+    dset[f'{wind_vars[1]}_conv'] = conv_compos[1]
     return dset
 
 
