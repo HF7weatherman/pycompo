@@ -89,7 +89,7 @@ feature:
 
 # Data Cutout Sample Settings
 cutout:
-  search_RadRatio: 3.0
+  search_RadRatio: 5.0
 
 # Composite Settings
 composite:
