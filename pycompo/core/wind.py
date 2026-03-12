@@ -56,6 +56,10 @@ def add_rotate_winds(
             ("uas", "vas"),
             ("ua_ano", "va_ano"),
             ("ua", "va"),
+            ("uas_ano_conv", "vas_ano_conv"),
+            ("uas_conv", "vas_conv"),
+            ("ua_ano_conv", "va_ano_conv"),
+            ("ua_conv", "va_conv"),
         ]
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
