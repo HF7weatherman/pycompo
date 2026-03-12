@@ -33,6 +33,7 @@ def main():
     wind_vars = config['data']['wind_vars']
     study_vars = config['data']['study_vars']
     varlist = [feat_var] + wind_vars + study_vars
+    compo_type = config['composite']['type']
     
     opath_feat = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
     opath_feat.mkdir(parents=True, exist_ok=True)
@@ -108,12 +109,24 @@ def main():
             dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
+        dset = pccoord.calc_sphere_convergence_components(
+            dset, tuple(f"{var}_ano" for var in config['data']['wind_vars']),
+            )
+        
+        # calculate optional quantities
+        if 'tas' in config['data']['study_vars']:
+            if compo_type == 'anomaly':
+                dset = pccoord.calc_sphere_gradient_laplacian(dset, 'tas_ano')
+            elif compo_type == 'absolute':
+                dset = pccoord.calc_sphere_gradient_laplacian(dset, 'tas')
+
         if 'ps' in config['data']['study_vars']:
-            if config['composite']['type'] == 'anomaly':
+            if compo_type == 'anomaly':
                 dsample = pccoord.calc_sphere_laplacian(dsample, 'ps_ano')
-            elif config['composite']['type'] == 'absolute':
+            elif compo_type == 'absolute':
                 dsample = pccoord.calc_sphere_laplacian(dsample, 'ps')
-                
+        
+        # subsampling to latitudinal belt of interest
         dsample['cell_area'] = get_cells_area(dsample)
         dsample = dsample.sel(lat=slice(*config['lat_range']), drop=True)
         
@@ -203,6 +216,11 @@ def process_one_timestep(
         orig_coords, featdata, featprops, featellipse,
         )
     featdata = pcwind.add_wind_grads(featdata, featprops, grad_var)
+    if 'tas' in config['data']['study_vars']:
+        if config['composite']['type'] == 'anomaly':
+            featdata = pcwind.add_wind_grads(featdata, featprops, "tas_ano")
+        elif config['composite']['type'] == 'absolute':
+            featdata = pcwind.add_wind_grads(featdata, featprops, "tas")
     featdata = pcwind.add_rotate_winds(featdata, featprops)
 
     print_time = time.values if hasattr(time, 'values') else time
