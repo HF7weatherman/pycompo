@@ -6,7 +6,7 @@ if [ -z "$analysis_identifier" ]; then
     echo "Usage: $0 <analysis_identifier>"
     exit 1
 fi
-
+export ACCOUNT=bm1500
 export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
 export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/drivers/get_features.py
 export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/drivers/combine_feature_props.py
@@ -17,9 +17,8 @@ export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
 #FLAG_FILE="${OUTPATH}/${1}/features/getting_features.flag"
 #touch ${FLAG_FILE}
 
-jobid1=$(sbatch --parsable --constraint=${node_size} <<'EOF'
+jobid1=$(sbatch --parsable --constraint=${node_size} --account=${ACCOUNT} <<'EOF'
 #!/bin/bash
-#SBATCH --account=mh0731
 #SBATCH --partition=compute
 #SBATCH --mem=0
 #SBATCH --ntasks-per-node=1
@@ -58,9 +57,8 @@ EOF
 )
 
 # COMBINE FEATURE PROPS
-jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} <<EOF
+jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} --account=${ACCOUNT} <<EOF
 #!/bin/bash
-#SBATCH --account=mh0731
 #SBATCH --partition=compute
 #SBATCH --mem=0
 #SBATCH --ntasks-per-node=1
@@ -84,9 +82,8 @@ EOF
 )
 
 # GET COMPOSITES
-jobid3=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid2} <<EOF
+jobid3=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid2} --account=${ACCOUNT} <<EOF
 #!/bin/bash
-#SBATCH --account=mh0731
 #SBATCH --partition=compute
 #SBATCH --mem=0
 #SBATCH --ntasks-per-node=1
