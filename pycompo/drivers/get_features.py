@@ -1,3 +1,4 @@
+from __future__ import annotations
 import gc
 import numpy as np
 import sys
@@ -24,6 +25,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
+    """ """
     config_file = sys.argv[1]
     config = pcutil.read_yaml_config(config_file)
 
@@ -94,31 +96,33 @@ def main():
         
         if 'ts_bg' in dfilter and 'tas_bg' in dfilter:
             dfilter['tas-ts_bg'] = dfilter['tas_bg'] - dfilter['ts_bg']
-            merge_dsets.append(dfilter['tas-ts_bg'])
+            merge_dsets.append(dfilter['tas-ts_bg'].to_dataset())
         if 'sfc_rho_bg' in dfilter:
-            merge_dsets.append(dfilter['sfc_rho_bg'])
+            merge_dsets.append(dfilter['sfc_rho_bg'].to_dataset())
         if 'pr_bg' in dfilter:
-            merge_dsets.append(dfilter['pr_bg'])
+            merge_dsets.append(dfilter['pr_bg'].to_dataset())
             dfilter['pr_fraction'] = dfilter['pr_ano']/dfilter['pr_bg']
-            merge_dsets.append(dfilter['pr_fraction'])
+            merge_dsets.append(dfilter['pr_fraction'].to_dataset())
         
         dsample = xr.merge(merge_dsets)
 
-        # add timelag and calculate gradients
+        # add timelag and calculate gradients and convergence
         dsample = pcutil.add_timelag_idx_space(
             dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
-        dset = pccoord.calc_sphere_convergence_components(
-            dset, tuple(f"{var}_ano" for var in config['data']['wind_vars']),
+        dsample = pccoord.calc_sphere_convergence_components(
+            dsample, tuple(f"{var}_ano" for var in config['data']['wind_vars']),
             )
         
         # calculate optional quantities
         if 'tas' in config['data']['study_vars']:
             if compo_type == 'anomaly':
-                dset = pccoord.calc_sphere_gradient_laplacian(dset, 'tas_ano')
+                dsample = \
+                    pccoord.calc_sphere_gradient_laplacian(dsample, 'tas_ano')
             elif compo_type == 'absolute':
-                dset = pccoord.calc_sphere_gradient_laplacian(dset, 'tas')
+                dsample = \
+                    pccoord.calc_sphere_gradient_laplacian(dsample, 'tas')
 
         if 'ps' in config['data']['study_vars']:
             if compo_type == 'anomaly':
@@ -137,10 +141,10 @@ def main():
             ofile_popm_rb = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
             rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
             if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
-            popmeans_rb = calc_popmeans(dsample.where(rainbelt), feat_var)
+            popmeans_rb = calc_popmeans(dsample.where(rainbelt))
             popmeans_rb.to_netcdf(str(opath_popm/ofile_popm_rb))
 
-        popmeans_at = calc_popmeans(dsample, feat_var)
+        popmeans_at = calc_popmeans(dsample)
         popmeans_at.to_netcdf(str(ofile_popm_at))
 
         # ----------------------------------------------------------------------
@@ -170,6 +174,7 @@ def process_one_timestep_safe(
         time: np.datetime64,
         config: dict,
         ) -> xr.Dataset:
+    """ """
     try:
         return process_one_timestep(dset, time, config)
     except Exception as e:
@@ -184,8 +189,9 @@ def process_one_timestep(
         time: np.datetime64,
         config: dict,
         ) -> xr.Dataset:
+    """ """
     data = dset.sel(time=time)
-    orig_coords = pccoord.get_coords_orig(data.drop('time'))
+    orig_coords = pccoord.get_coords_orig(data.drop_vars('time'))
     feat_var = config['data']['feature_var']
     if config['composite']['type'] == 'anomaly':
         grad_var = f"{feat_var}_ano"

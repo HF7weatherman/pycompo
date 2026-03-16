@@ -14,7 +14,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
-    ""
+    """ """
     config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
@@ -43,7 +43,7 @@ def build_yearly_compo_pvalue(
         variance: list[xr.Dataset],
         N_features: list[np.float64],
         ) -> tuple[xr.Dataset, xr.DataArray | xr.Dataset]:
-    ""
+    """ """
     popmeans_merged = xr.concat(popmeans, dim='month').mean(dim='month')
     compo_merged = xr.concat(compo, dim='month')
     variance_merged = xr.concat(variance, dim='month')
@@ -63,7 +63,7 @@ def run_get_composites(
         config: dict,
         ofiles: dict,
         ) -> None:
-    ""
+    """ """
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']

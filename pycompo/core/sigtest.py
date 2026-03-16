@@ -1,8 +1,7 @@
+from __future__ import annotations
 from scipy import stats
 import numpy as np
 import xarray as xr
-
-from typing import Tuple
 
 from pycompo.core.utils import area_weighted_avg
 
@@ -12,7 +11,7 @@ from pycompo.core.utils import area_weighted_avg
 def calc_compo_ttest(
         feature_compo_data: xr.Dataset,
         popmean: xr.Dataset,
-    ) -> Tuple[xr.Dataset, xr.Dataset]:
+    ) -> tuple[xr.Dataset, xr.Dataset]:
     """Calculate t-test for each grid point in the composite dataset.
 
     Parameters
@@ -38,7 +37,7 @@ def calc_compo_ttest(
 def _calc_compo_ttest(
         feature_compo_data: xr.Dataset,
         popmean: xr.Dataset,
-    ) -> Tuple[dict, dict]:
+    ) -> tuple[dict, dict]:
     """
     Performs a one-sample t-test for each variable in the input xr.Dataset along 
     the 'feature' dimension.
@@ -83,6 +82,7 @@ def _ttest_dict2xarray(
         data_dict: dict,
         feature_compo_data: xr.Dataset
     ) -> xr.Dataset:
+    """ """
     return xr.Dataset(
         data_vars = {
             var: (('x', 'y'), data) if data.ndim == 2 else 
@@ -105,6 +105,7 @@ def get_local_significance(
         pvalue: xr.Dataset,
         alpha: float=0.05
         ) -> xr.Dataset:
+    """ """
     return pvalue < alpha
 
 
@@ -115,6 +116,7 @@ def get_field_significance(
         pvalue: xr.Dataset,
         alpha_FDR: float=0.1
         ) -> xr.Dataset:
+    """ """
     return xr.Dataset(
         data_vars = {
             var: \
@@ -196,7 +198,7 @@ def multiple_hypothesis_test_with_FDR(
 def _benjamini_hochberg_procedure(
         p_field: np.ndarray,
         alpha_FDR: float
-        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Apply the Benjamini-Hochberg procedure to control the FDR."""
     N_points = p_field.size
     p_vector = p_field.flatten()
@@ -217,6 +219,7 @@ def fdr_heuristics(
         gap_threshold: int=10,
         minimum_segment_length: int=10
         ) -> np.ndarray:
+    """ """
     # Step 1: identify large consecutive segments
     idx_select = np.where(selmask)[0]
     edge_idxs = np.where(np.diff(idx_select) >= gap_threshold)[0]
@@ -270,8 +273,9 @@ def yearly_ttest_from_monthly_data(
         mon_mean: xr.Dataset,
         mon_var: xr.Dataset,
         n_per_mon: xr.DataArray,
-        popmean: float=0.0,
-        ):
+        popmean: xr.Dataset | float=0.0,
+        ) -> tuple[xr.DataArray | xr.Dataset, xr.DataArray | xr.Dataset]:
+    """ """
     year_mean, year_var = _monthly2yearly_stats(mon_mean, mon_var, n_per_mon)
     t_stat, p_value = _manual_t_test(
         year_mean, year_var, n_per_mon.sum(dim='month'), popmean
@@ -283,7 +287,8 @@ def _monthly2yearly_stats(
         mon_mean: xr.Dataset,
         mon_var: xr.Dataset,
         n_per_mon: xr.DataArray,
-        ) -> Tuple[xr.Dataset, xr.Dataset]:
+        ) -> tuple[xr.Dataset, xr.Dataset]:
+    """ """
     year_mean = (n_per_mon * mon_mean).sum(dim='month') / \
         n_per_mon.sum(dim='month')
     year_var = (
@@ -294,11 +299,12 @@ def _monthly2yearly_stats(
     
 
 def _manual_t_test(
-        mean: np.ndarray,
-        variance: np.ndarray,
-        n_sample: int,
-        popmean: float=0.0
-        ) -> Tuple[np.ndarray, np.ndarray]:
+        mean: xr.DataArray | xr.Dataset,
+        variance: xr.DataArray | xr.Dataset,
+        n_sample: xr.DataArray | xr.Dataset,
+        popmean: xr.DataArray | xr.Dataset | float=0.0,
+        ) -> tuple[xr.DataArray | xr.Dataset, xr.DataArray | xr.Dataset]:
+    """ """
     std_error = np.sqrt(variance / n_sample)
     t_stat = (mean - popmean) / std_error
     p_value = {
@@ -329,11 +335,17 @@ def _manual_t_test(
 # --------------------------------------
 def calc_popmeans(
         dset: xr.Dataset,
-        feature_var: str,
-        ) -> xr.Dataset:
+        ) -> xr.DataArray | xr.Dataset:
+    """ """
     popmeans = area_weighted_avg(dset.drop('cell_area'), dset['cell_area'])
-    popmeans[f'downwind_{feature_var}_ano_grad'] = \
-        popmeans[f'd{feature_var}_ano_dx'] * 0. 
-    popmeans[f'crosswind_{feature_var}_ano_grad'] = \
-        popmeans[f'd{feature_var}_ano_dy'] * 0.
+
+    for var in popmeans.data_vars.keys():
+        var = str(var)
+        if var.startswith("d") and var.endswith("_ano_dx"):
+            base = var[1:-7]  # strip 'd' and '_ano_dx'
+            popmeans[f"downwind_{base}_ano_grad"] = popmeans[var] * 0
+        elif var.startswith("d") and var.endswith("_ano_dy"):
+            base = var[1:-7]  # strip 'd' and '_ano_dy'
+            popmeans[f"crosswind_{base}_ano_grad"] = popmeans[var] * 0
+
     return popmeans
