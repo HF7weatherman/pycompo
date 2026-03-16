@@ -212,3 +212,4 @@ analysis
 config/*
 !config/settings_template.yaml
 run/nohup.out
+.vscode
