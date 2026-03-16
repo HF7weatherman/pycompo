@@ -1,7 +1,7 @@
+from __future__ import annotations
 import numpy as np
 import xarray as xr
 from skimage.measure import regionprops
-from typing import Tuple, List
 
 from grid_toolbox.basic_latlon import get_cells_area
 
@@ -21,8 +21,9 @@ def extract_sst_features(
         connectivity: int,
         min_area: float,
         max_ar: float,
-        property_list: List[str],
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
+        property_list: list[str],
+        ) -> tuple[xr.DataArray, xr.Dataset]:
+    """ """
     feature_map, basic_feature_props = _get_sst_features(
         sst_dset, type=type, threshold=threshold, connectivity=connectivity,
         )
@@ -47,6 +48,7 @@ def _get_sst_features(
         threshold: float,
         connectivity: int,
         ) -> xr.DataArray:
+    """ """
     structure_element =_build_structure_element(connectivity)
 
     # Initialisation
@@ -118,6 +120,7 @@ def _get_feature_props_idx_space(
         feature_map: xr.DataArray,
         props_lst: list,
         ) -> xr.Dataset:
+    """ """
     feature_props = []
     if "time" in feature_map.dims:
         for time in feature_map['time']:
@@ -140,6 +143,7 @@ def _area_weighted_feature_mean(
         intensity_image: xr.DataArray,
         feature_props: xr.Dataset,
         ):
+    """ """
     cell_area_km2 = get_cells_area(intensity_image)/1000**2
 
     feature_mean = []
@@ -161,7 +165,8 @@ def _remove_small_features(
         feature_props: xr.Dataset,
         feature_min_area: float,
         area_varname: str='area_km2',
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
+        ) -> tuple[xr.DataArray, xr.Dataset]:
+    """ """
     feature_props = feature_props.where(
         feature_props[area_varname]>feature_min_area, drop=True,
         )
@@ -170,6 +175,7 @@ def _remove_small_features(
 
 
 def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
+    """ """
     data_vars = {}
 
     for prop, values in feature_props_dict.items():
@@ -190,6 +196,7 @@ def _transform_feature_props_idx_space_to_xrarray(feature_props_dict):
 
 
 def _build_structure_element(connectivity: int=4) -> list:
+    """ """
     if connectivity not in [4, 8]:
         raise ValueError(
             "Please provide a valid feature connectivity! Only 4- and 8-" +
@@ -212,8 +219,9 @@ def _build_structure_element(connectivity: int=4) -> list:
 def _update_features(
         feature_map: xr.DataArray,
         feature_props: xr.Dataset,
-        feature_data: List[xr.Dataset],
-        ) -> Tuple[xr.DataArray, xr.Dataset]:
+        feature_data: list[xr.Dataset],
+        ) -> tuple[xr.DataArray, xr.Dataset]:
+    """ """
     keep_features = [int(data['feature_id'].values) for data in feature_data]
     feature_props = feature_props.where(
         feature_props['feature_id'].isin(keep_features), drop=True,
@@ -226,12 +234,16 @@ def _update_feature_map(
     feature_map: xr.DataArray,
     feature_props: xr.Dataset,
     ) -> xr.DataArray:
+    """ """
     return feature_map.where(
         feature_map.isin(feature_props['feature_id']) | feature_map.isnull(), 0
         )
 
 
-def set_global_feature_id(feature_list: list) -> list:
+def set_global_feature_id(
+        feature_list: list,
+        ) -> list:
+    """ """
     global_feature_id = 1
     for idx, feature in enumerate(feature_list):
         global_feature_id_old = global_feature_id
@@ -247,9 +259,10 @@ def set_global_feature_id(feature_list: list) -> list:
 # ------------------------------------------
 def add_more_feature_props(
         feature_props: xr.Dataset,
-        feature_centric_data: List[xr.Dataset],
+        feature_centric_data: list[xr.Dataset],
         orig_coords: xr.Dataset,
-):
+        ):
+    """ """
     feature_props['centroid_sphere'] = get_centroid_coords(
         orig_coords, feature_props['centroid_idx'],
         )
@@ -283,9 +296,10 @@ def add_more_feature_props(
 
 def _calc_feature_bg_field(
         feature_props: xr.Dataset,
-        feature_centric_data: List[xr.Dataset],
+        feature_centric_data: list[xr.Dataset],
         var: str,
         ) -> xr.Dataset:
+    """ """
     bg_field = [
         area_weighted_avg(data[f"{var}_bg"], data['cell_area']).values
         for data in feature_centric_data
@@ -295,7 +309,13 @@ def _calc_feature_bg_field(
     return feature_props
 
 
-def filter_asprat(feature_data, feature_props, feature_ellipse, max_asprat=5):
+def filter_asprat(
+        feature_data,
+        feature_props,
+        feature_ellipse,
+        max_asprat=5,
+        ):
+    """ """
     feature_props['asprat_cart'] = \
         calc_ellipse_asprat(feature_ellipse['rota_featcen_cart'])
     mask = feature_props['asprat_cart'] < max_asprat

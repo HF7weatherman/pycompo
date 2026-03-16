@@ -65,6 +65,8 @@ COMPO_PLOT_LABEL = {
     'cli_ano': 'cloud ice water',
     'pfull_ano': 'pressure',
     'mse_e_ano': 'moist static energy',
+    'pr_fraction': 'relative precipitation anomaly',
+    'pa_driven_conv': 'PA-driven convergence',
 }
 
 COMPO_PLOT_RANGE = {
@@ -124,6 +126,7 @@ COMPO_PLOT_RANGE = {
     'cli_ano': [-0.005, 0.005],
     'pfull_ano': [-0.5, 0.5],
     'mse_e_ano': [-80, 80],
+    'pr_fraction': [-7.5, 7.5],
 }
 
 CLABEL = {
@@ -183,6 +186,8 @@ CLABEL = {
     'cli_ano': 'cli_ano / mg kg-1',
     'pfull_ano': "pfull_ano / Pa",
     'mse_e_ano': "mse_e_ano / J kg-1",
+    'pr_fraction': "pr_fraction / %",
+    'pa_driven_conv': "pa_driven_conv / s-1",
 }
 
 
@@ -243,6 +248,8 @@ CLABEL_NICE = {
     'cli_ano': "mg$\,$kg$^{-1}$",
     'pfull_ano': "Pa",
     'mse_e_ano': "J$\,$kg$^{-1}$",
+    'pr_fraction': "%",
+    'pa_driven_conv': "10$^{-5}\,$s$^{-1}$",
 }
 
 
@@ -303,6 +310,8 @@ COMPO_PLOT_CMAP = {
     'cli_ano': 'RdBu_r',
     'pfull_ano': "RdBu_r",
     'mse_e_ano': "RdBu_r",
+    'pr_fraction': "RdBu_r",
+    'pa_driven_conv': "RdBu_r",
 }
 
 
@@ -533,10 +542,10 @@ def plot_coord_trafo(
         )
     axs[2, 1].quiver(0, 0, uas_rota2, vas_rota2, scale=50, zorder=2)
 
-    axs[2, 0].set_xlim([-2.5, 2.5])
-    axs[2, 0].set_ylim([-2.5, 2.5])
-    axs[2, 1].set_xlim([-2.5, 2.5])
-    axs[2, 1].set_ylim([-2.5, 2.5])
+    axs[2, 0].set_xlim([-5, 5])
+    axs[2, 0].set_ylim([-5, 5])
+    axs[2, 1].set_xlim([-5, 5])
+    axs[2, 1].set_ylim([-5, 5])
 
     plt.tight_layout()
     for i in range(0, len(axs.ravel())): axs.ravel()[i].set_aspect('equal')

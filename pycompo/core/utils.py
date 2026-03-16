@@ -1,3 +1,4 @@
+from __future__ import annotations
 import math
 import yaml
 import numpy as np
@@ -6,12 +7,14 @@ from pandas import date_range
 
 
 def read_yaml_config(file_path: str) -> dict:
+    """ """
     with open(file_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
 
 def np_datetime2file_datestr(time_np64: np.datetime64) -> str:
+    """ """
     format = '%Y%m%dT%H%M%SZ'
     return time_np64.astype('datetime64[us]').astype('O').strftime(format)
 
@@ -20,6 +23,7 @@ def area_weighted_avg(
         data: xr.DataArray | xr.Dataset,
         area: xr.DataArray,
         ) -> xr.DataArray | xr.Dataset:
+    """ """
     return (data * area).sum(dim=['lat', 'lon']) / area.sum(dim=['lat', 'lon'])
 
 
@@ -28,11 +32,13 @@ def roll_avg(
         clim_avg_days: int | float,
         spd: int,
         ) -> xr.DataArray | xr.Dataset:
+    """ """
     window_size = int(clim_avg_days*spd + 1)
     return dset.rolling(time=window_size, center=True).mean()
 
 
 def round_away_from_zero(x: float) -> int:
+    """ """
     return int(math.copysign(math.ceil(abs(x)), x))
 
 
@@ -40,6 +46,7 @@ def add_metric_altitude(
         compo: xr.Dataset,
         config: dict,
         ) -> xr.Dataset:
+    """ """
     if config['exp'] == "ngc5004":
         # add altitude coordinate aligned with the existing 'height' dimension
         altitude = np.array(
@@ -73,6 +80,7 @@ def add_metric_altitude(
     
 
 def get_subgroup_vars_dict(config: dict) -> dict:
+    """ """
     merged = {}
     for d in config['composite']['subgroup_vars']:
         merged.update(d)
@@ -87,6 +95,7 @@ def subsample_data(
         end_time: np.datetime64,
         config: dict,
         ) -> xr.DataArray | xr.Dataset:
+    """ """
     granularity = np.timedelta64(int(24/config['data']['spd']), 'h')
     timelag = np.timedelta64(
         int(config['data']['timelag_idx'] * (24/config['data']['spd'])), 'h',
@@ -104,6 +113,7 @@ def circ_roll_avg(
         clim_avg_days: int | float,
         spd: int,
         ) -> xr.DataArray | xr.Dataset:
+    """ """
     window_size = int(clim_avg_days*spd + 1)
 
     # Build pseudo-circular extended array
@@ -127,13 +137,12 @@ def add_timelag_idx_space(
         feature_var: str,
         timelag_idx: int=0,
         ) -> xr.Dataset:
-    # Input checks
+    """ """
     if 'time' not in dset.dims:
         raise ValueError("Dataset must have 'time' dimension.")
     if timelag_idx < 0:
         raise ValueError("time_lag_idx must be a non-negative integer.")
     
-    # Apply time lag
     dset[f'{feature_var}_detect'] = dset[f'{feature_var}'].copy()
     if timelag_idx == 0:
         return dset
@@ -150,6 +159,7 @@ def add_timelag_idx_space(
 # New utils
 # ---------
 def create_analysis_times(config: dict) -> list[np.datetime64]:
+    """ """
     start_time = config['data']['analysis_time'][0]
     end_time = config['data']['analysis_time'][1]
     analysis_times = [
@@ -161,11 +171,13 @@ def create_analysis_times(config: dict) -> list[np.datetime64]:
 
 
 def create_ftime_str(start_time: np.datetime64, end_time: np.datetime64) -> str:
+    """ """
     return f"{np_datetime2file_datestr(start_time)}-" + \
             f"{np_datetime2file_datestr(end_time)}"
 
 
 def sort_ds(ds: xr.Dataset) -> xr.Dataset:
+    """ """
     sorted_vars = sorted(
         ds.data_vars,
         key=lambda v: (len(ds[v].dims), v[0].lower())

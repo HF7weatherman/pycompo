@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 import warnings
 import xarray as xr
@@ -10,7 +11,11 @@ from pycompo.core.sst_features import set_global_feature_id
 warnings.filterwarnings(action='ignore')
 
 
-def run_combine_feature_props(config: dict, outfiles: dict) -> None:
+def run_combine_feature_props(
+        config: dict,
+        outfiles: dict,
+        ) -> None:
+    """ """
     KEEP_PROPS = [
         'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind',
         'bg_sfcwind_dir', 'bg_tas-ts', 'ts_ano_detect_mean',

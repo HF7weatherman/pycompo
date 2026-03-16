@@ -1,9 +1,9 @@
+from __future__ import annotations
 import numpy as np
 import sys
 import warnings
 import xarray as xr
 from pathlib import Path
-from typing import Tuple
 
 import pycompo.core.utils as pcutil
 import pycompo.core.sigtest as pcsig
@@ -14,6 +14,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
+    ""
     config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     opath = Path(f"{config['data']['outpath']}/{ana_idf}/")
@@ -41,7 +42,8 @@ def build_yearly_compo_pvalue(
         popmeans: list[xr.Dataset],
         variance: list[xr.Dataset],
         N_features: list[np.float64],
-        ) -> Tuple[xr.Dataset, xr.Dataset]:
+        ) -> tuple[xr.Dataset, xr.DataArray | xr.Dataset]:
+    ""
     popmeans_merged = xr.concat(popmeans, dim='month').mean(dim='month')
     compo_merged = xr.concat(compo, dim='month')
     variance_merged = xr.concat(variance, dim='month')
@@ -57,7 +59,11 @@ def build_yearly_compo_pvalue(
     return compo_merged, pvalue
     
 
-def run_get_composites(config: dict, ofiles: dict) -> None:
+def run_get_composites(
+        config: dict,
+        ofiles: dict,
+        ) -> None:
+    ""
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']

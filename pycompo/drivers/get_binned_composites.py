@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 import warnings
 import numpy as np
@@ -15,6 +16,7 @@ warnings.filterwarnings(action='ignore')
 
 # ------------------------------------------------------------------------------
 def main():
+    """ """
     config = pcutil.read_yaml_config(sys.argv[1])
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
@@ -66,6 +68,7 @@ def run_get_binned_composites(
         ofile_at: dict,
         ofile_rb: dict | None,
         ) -> None:
+    """ """
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     ana_times = pcutil.create_analysis_times(config)
     rainbelt_switch = config['composite']['rainbelt_subsampling']['switch']
@@ -152,7 +155,10 @@ def run_get_binned_composites(
                 to_netcdf(str(ofile_rb['pvalue'][var])) #type:ignore
 
 
-def _reorganize_binned_list(in_list: list[dict]) -> dict:
+def _reorganize_binned_list(
+        in_list: list[dict],
+        ) -> dict:
+    """ """
     out_dict = {key: [d[key] for d in in_list] for key in in_list[0]}
     for key, data in out_dict.items():
         if type(data[0]) == xr.Dataset:
@@ -168,6 +174,7 @@ def build_yearly_compo_pvalue_binned(
         N_features: list[dict],
         popmeans: list[xr.Dataset],
         ) -> Tuple[xr.Dataset, xr.Dataset]:
+    """ """
     popmeans_merged = xr.concat(popmeans, dim='month').mean(dim='month')
     compo_merged = _reorganize_binned_list(compo)
     variance_merged = _reorganize_binned_list(variance)

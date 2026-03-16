@@ -1,15 +1,16 @@
+from __future__ import annotations
 import xarray as xr
 import numpy as np
-from typing import Tuple
 
 from pycompo.core.sst_features import _calc_feature_bg_field
 
 def calc_feature_bg_wind(
         feature_props: xr.Dataset,
         feature_centric_data: list[xr.Dataset],
-        wind_vars: Tuple[str, str],
+        wind_vars: tuple[str, str],
         calc_sfcwind: bool=True,
         ) -> xr.Dataset:
+    """ """
     # Calculate mean wind components for cutout region
     for var in wind_vars:
         feature_props = _calc_feature_bg_field(
@@ -17,7 +18,6 @@ def calc_feature_bg_wind(
             )
 
     if calc_sfcwind:
-        # Calculate sfcwind speed and direction
         feature_props['bg_sfcwind'] = _calc_windspeed(
             feature_props[f'bg_{wind_vars[0]}'],
             feature_props[f'bg_{wind_vars[1]}'],
@@ -34,6 +34,7 @@ def add_wind_grads(
         feature_props: xr.Dataset,
         grad_var: str,
         ) -> list:
+    """ """
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         props = feature_props.isel(feature=idx)
@@ -51,6 +52,7 @@ def add_rotate_winds(
         feature_data_in: list,
         feature_props: xr.Dataset,
         ) -> list:
+    """ """
     pairs = [
             ("uas_ano", "vas_ano"),
             ("uas", "vas"),
@@ -122,7 +124,8 @@ def _calc_wind_grads(
         feature_props: xr.Dataset,
         feature_data: xr.Dataset,
         grad_var: str,
-        ) -> Tuple[xr.DataArray, xr.DataArray]:
+        ) -> tuple[xr.DataArray, xr.DataArray]:
+    """ """
     cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']
     sin_winddir = feature_props['bg_vas'] / feature_props['bg_sfcwind']
     downwind_sst_grad = \
@@ -138,8 +141,9 @@ def _calc_wind_grads(
 def _rotate_winds(
         feature_props: xr.Dataset,
         feature_data: xr.Dataset,
-        wind_components: Tuple[str, str],
-        ) -> Tuple[xr.DataArray, xr.DataArray]:
+        wind_components: tuple[str, str],
+        ) -> tuple[xr.DataArray, xr.DataArray]:
+    """ """
     zonal_wind = wind_components[0]
     meridional_wind = wind_components[1]
     cos_winddir = feature_props['bg_uas'] / feature_props['bg_sfcwind']

@@ -1,7 +1,7 @@
+from __future__ import annotations
 import numpy as np
 import xarray as xr
 from scipy.ndimage import gaussian_filter
-from typing import Tuple
 from pathlib import Path
 
 from pycompo.core.utils import circ_roll_avg
@@ -14,7 +14,8 @@ def detrend_with_hourly_climatology(
     dset: xr.DataArray | xr.Dataset,
     feature_var: str,
     config: dict,
-    ) -> Tuple[xr.DataArray | xr.Dataset, str, list]:
+    ) -> tuple[xr.DataArray | xr.Dataset, str, list]:
+    """ """
     # Read in data for building the climatology
     inpath = Path(config['data']['inpaths'][feature_var])
     in_pattern = f"{config['exp']}_tropical_{feature_var}_*.nc"
@@ -64,6 +65,7 @@ def build_hourly_climatology(
 
 
 def _create_grouper_coord(dset: xr.DataArray | xr.Dataset):
+    """ """
     return xr.apply_ufunc(
         _format_time_label,
         dset['time'].dt.month,
@@ -76,6 +78,7 @@ def _create_grouper_coord(dset: xr.DataArray | xr.Dataset):
 
 
 def _format_time_label(month, day, hour):
+    """ """
     return f"{month:02d}-{day:02d}_{hour:02d}"
 
 
@@ -83,6 +86,7 @@ def _grouper_coord2datetime64(
         climatology: xr.DataArray | xr.Dataset,
         clim_baseyear: str
         ) -> xr.DataArray | xr.Dataset:
+    """ """
     # Split group_time into month, day, and hour and assign as a coordinate
     group_time_str = climatology['group_time'].astype(str)
     month = group_time_str.str.slice(0, 2).astype(int)
@@ -160,7 +164,7 @@ def gaussian_lowpass_filter(
         lat_mid: float,
         cutoff_scale_km: float,
         truncation: float, 
-        ) -> Tuple[list, np.ndarray]:
+        ) -> tuple[list, np.ndarray]:
     """
     Applies a Gaussian lowpass filter to the input DataArray.
 
@@ -223,7 +227,7 @@ def gaussian_lowpass_filter(
 def _Lc_km2deg(
         Lc_km: float,
         lat_mid: float
-        ) -> Tuple[float, float]:
+        ) -> tuple[float, float]:
     """
     Convert a length in kilometers to degrees of latitude and longitude at a
     given latitude.

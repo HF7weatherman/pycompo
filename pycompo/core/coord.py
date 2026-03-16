@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from __future__ import annotations
 import xarray as xr
 import numpy as np
 
@@ -11,6 +11,7 @@ KM_PER_DEGREE_EQ = 111.195  # km per degree of latitude/longitude at the equator
 # General coordinate functions
 # --------------------------------
 def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
+    """ """
     if 'height_2' in dset.data_vars: dset = dset.drop_vars('height_2')
     coords_orig = dset[['lat', 'lon', 'cell_area']]
     coords_orig = coords_orig.assign_coords(
@@ -34,12 +35,12 @@ def get_coords_orig(dset: xr.Dataset) -> xr.Dataset:
 
 
 def calc_sphere_gradient_laplacian(
-        dset: xr.DataArray | xr.Dataset,
+        dset: xr.Dataset,
         feature_var: str,
         ) -> xr.Dataset:
-    gradient, laplacian = spherderiv.compute_gradient_and_laplacian_on_latlon(
-        dset[feature_var]
-        )
+    """ """
+    gradient, laplacian = \
+        spherderiv.compute_gradient_and_laplacian_on_latlon(dset[feature_var])
     dset[f'd{feature_var}_dx'] = gradient[0]
     dset[f'd{feature_var}_dy'] = gradient[1]
     dset[f'{feature_var}_laplacian'] = laplacian
@@ -51,9 +52,10 @@ def calc_sphere_gradient_laplacian(
 
 
 def calc_sphere_laplacian(
-        dset: xr.DataArray | xr.Dataset,
+        dset: xr.Dataset,
         feature_var: str,
         ) -> xr.Dataset:
+    """ """
     dset[f'{feature_var}_laplacian'] = \
         spherderiv.compute_laplacian_on_latlon(dset[feature_var])
     for var in dset.data_vars:
@@ -64,9 +66,10 @@ def calc_sphere_laplacian(
 
 
 def calc_sphere_convergence_components(
-        dset: xr.DataArray | xr.Dataset,
-        wind_vars: Tuple[str, str],
+        dset: xr.Dataset,
+        wind_vars: tuple[str, str],
         ) -> xr.Dataset:
+    """ """
     conv_compos = spherderiv.compute_hor_wind_conv_components_on_latlon(
         dset[wind_vars[0]], dset[wind_vars[1]],
         )
@@ -80,10 +83,11 @@ def calc_sphere_convergence_components(
 # --------------------------------
 def add_featcen_coords(
         coords_sphere: xr.Dataset,
-        feature_data_in: List[xr.Dataset],
+        feature_data_in: list[xr.Dataset],
         feature_props: xr.Dataset,
         feature_ellipse: dict,
-        ) -> List[xr.Dataset]:
+        ) -> list[xr.Dataset]:
+    """ """
     feature_data_out = []
     for idx, _ in enumerate(feature_props['feature_id']):
         data = feature_data_in[idx]
@@ -108,6 +112,7 @@ def featcen_sphere_coords(
         data: xr.Dataset,
         centroid_idx: xr.Dataset,
         ) -> xr.Dataset:
+    """ """
     centroid_coords = get_centroid_coords(coords_sphere, centroid_idx)
     centroid_lat = centroid_coords.sel(component='lat').values
     centroid_lon = centroid_coords.sel(component='lon').values
@@ -124,6 +129,7 @@ def featcen_sphere_coords(
 
 
 def featcen_cart_coords(data: xr.Dataset) -> xr.Dataset:
+    """ """
     dx = KM_PER_DEGREE_EQ * np.cos(np.deg2rad(data['lat']))
     dy = KM_PER_DEGREE_EQ
 
@@ -138,7 +144,8 @@ def featcen_cart_coords(data: xr.Dataset) -> xr.Dataset:
 def rota_featcen_cart_coords(
         data: xr.Dataset,
         rot_angle_rad: xr.DataArray,
-        ) -> List[xr.Dataset]:
+        ) -> xr.Dataset:
+    """ """
     data['rota_featcen_x'], data['rota_featcen_y'] = \
         _calc_rota_featcen_cart_coords(
             data['featcen_x'], data['featcen_y'], rot_angle_rad,
@@ -150,6 +157,7 @@ def ellipse_norm_rota_featcen_cart_coords(
         data: xr.Dataset,
         ellipse: xr.Dataset,
         ) -> xr.Dataset:
+    """ """
     len_maj = _ax_cart_endpoints2length(ellipse['maj_end'])
     len_min = _ax_cart_endpoints2length(ellipse['min_end'])
 
@@ -178,13 +186,15 @@ def ellipse_norm_rota2_featcen_cart_coords(
         data: xr.Dataset,
         winds: xr.Dataset,
         polar_angle_rad: xr.DataArray,
-        ) -> List[xr.Dataset]:
+        ) -> xr.Dataset:
+    """ """
     wind_angle_rad = np.arctan2(winds['bg_vas'], winds['bg_uas'])
     rot_angle_rad = wind_angle_rad - polar_angle_rad
     
     data['En_rota2_featcen_x'], data['En_rota2_featcen_y'] = \
         _calc_rota_featcen_cart_coords(
-            data['En_rota_featcen_x'], data['En_rota_featcen_y'],
+            data['En_rota_featcen_x'],
+            data['En_rota_featcen_y'],
             rot_angle_rad,
             )
     return data
@@ -194,6 +204,7 @@ def get_centroid_coords(
         coords_sphere: xr.Dataset,
         centroid_idx: xr.DataArray
         ) -> xr.DataArray:
+    """ """
     return centroid_idx * coords_sphere['dsphere'] + coords_sphere['origin']
 
 
@@ -204,7 +215,8 @@ def _calc_rota_featcen_cart_coords(
         x: xr.DataArray,
         y: xr.DataArray,
         rot_angle_rad: xr.DataArray,
-        ) -> Tuple[xr.DataArray, xr.DataArray]:
+        ) -> tuple[xr.DataArray, xr.DataArray]:
+    """ """
     x_new = x * np.cos(rot_angle_rad) + y * np.sin(rot_angle_rad)
     y_new = -x * np.sin(rot_angle_rad) + y * np.cos(rot_angle_rad)
     return x_new, y_new
@@ -214,6 +226,7 @@ def _adjust_lon_jump(
         data_lon: xr.DataArray,
         centroid_lon: float,
         ) -> xr.DataArray:
+    """ """
     if centroid_lon > 0:
         data_lon = xr.where(data_lon < 0, data_lon + 360., data_lon)
     elif centroid_lon < 0:
@@ -224,6 +237,7 @@ def _adjust_lon_jump(
 
 
 def _ax_cart_endpoints2length(endpoints: xr.DataArray) -> np.ndarray:
+    """ """
     return np.sqrt(
         endpoints.sel(component='x')**2 + endpoints.sel(component='y')**2
         )

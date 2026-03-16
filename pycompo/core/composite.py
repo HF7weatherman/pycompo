@@ -1,8 +1,8 @@
+from __future__ import annotations
 import numpy as np
 import xarray as xr
 from scipy.interpolate import griddata
 from pathlib import Path
-from typing import Tuple
 
 import pycompo.core.filter as pcfilter
 import pycompo.core.utils as pcutil
@@ -15,6 +15,7 @@ def get_compo_coords_ds(
         feature_data: list[xr.Dataset],
         config: dict,
         ) -> xr.Dataset:
+    """ """
     compo_vars = _get_compo_vars(feature_data[0].data_vars)
 
     feature_compo_data = {
@@ -33,10 +34,11 @@ def get_compo_coords_ds(
 
 def interpolate2compo_coords(
         feature_data: list[xr.Dataset],
-        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        compo_target_coords: tuple[np.ndarray, np.ndarray],
         var: str,
         method: str='linear',
         ):
+    """ """
     if "height" in feature_data[0][var].dims:
         return _interpolate2compo_coords_3d(
             feature_data, compo_target_coords, var, method
@@ -49,10 +51,11 @@ def interpolate2compo_coords(
 
 def _interpolate2compo_coords_2d(
         feature_data: list[xr.Dataset],
-        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        compo_target_coords: tuple[np.ndarray, np.ndarray],
         var: str,
         method: str='linear',
         ):
+    """ """
     compo_X, compo_Y = np.meshgrid(
         compo_target_coords[0], compo_target_coords[1],
         )
@@ -94,10 +97,11 @@ def _interpolate2compo_coords_2d(
 
 def _interpolate2compo_coords_3d(
         feature_data: list[xr.Dataset],
-        compo_target_coords: Tuple[np.ndarray, np.ndarray],
+        compo_target_coords: tuple[np.ndarray, np.ndarray],
         var: str,
         method: str='linear',
-        ):
+        ) -> xr.DataArray:
+    """ """
     compo_X, compo_Y = np.meshgrid(
         compo_target_coords[0], compo_target_coords[1],
         )
@@ -146,6 +150,7 @@ def _interpolate2compo_coords_3d(
 def _get_compo_vars(
         data_vars: list[str],
         ) -> list[str]:
+    """ """
     non_keep_list = [
         'cell_area', 'ts_feature', 'featcen_x', 'featcen_y', 'rota_featcen_x',
         'rota_featcen_y', 'En_rota_featcen_x', 'En_rota_featcen_y',
@@ -157,6 +162,7 @@ def _get_compo_vars(
 def _check_feature_id_consistency_across_vars(
         feature_compo_data: dict[str, xr.Dataset]
         ) -> dict[str, xr.Dataset]:
+    """ """
     N_features = [data.sizes['feature'] for data in feature_compo_data.values()]
     while len(set(N_features)) > 1:
         print("Warning: Different number of features for different variables!")
@@ -192,6 +198,7 @@ def sample_features_geomask(
         features: xr.Dataset,
         mask: xr.DataArray,
         ) -> xr.Dataset:
+    """ """
     keep_idx = []
     for idx, _ in enumerate(features['feature_id']):
         feature = features.isel(feature=idx)
@@ -208,6 +215,7 @@ def get_rainbelt(
         config: dict,
         quantile: float=0.8
         ) -> xr.DataArray:
+    """ """
     # read in data
     inpath = Path(config['data']['inpaths']['pr'])
     in_pattern = f"{config['exp']}_tropical_pr_*.nc"
@@ -246,6 +254,7 @@ def adjust_units(
     data: xr.Dataset,
     vars: list,
     ) -> xr.Dataset:
+    """ """
     data_adjusted = data.copy()
     for var in vars:
         if var in [
@@ -273,6 +282,7 @@ def get_quartile_compos_per_ts(
         feature_props_quartiles: xr.DataArray,
         var: str,
         ) -> dict:
+    """ """
     q25 = feature_props_quartiles.sel(quantile=0.25)
     q50 = feature_props_quartiles.sel(quantile=0.5)
     q75 = feature_props_quartiles.sel(quantile=0.75)
@@ -297,7 +307,8 @@ def get_binned_features(
         features: xr.Dataset,
         thresholds: list[np.float32 | np.float64],
         var: str,
-        ) -> Tuple[dict, dict, dict]:
+        ) -> tuple[dict, dict, dict]:
+    """ """
     compo_bin, var_bin, N_feats_bin = {}, {}, {}
     for start, end in zip(thresholds, thresholds[1:]):
         key = f"bin_{var}_{start}-{end}"
@@ -313,6 +324,7 @@ def get_binned_features(
 def get_full_quartile_compos(
         quartile_compo: list[dict],
         ) -> xr.Dataset:
+    """ """
     quartile_compo_dict = {
         key: [d[key] for d in quartile_compo] for key in quartile_compo[0]
         }

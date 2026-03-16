@@ -1,6 +1,6 @@
+from __future__ import annotations
 import numpy as np
 import xarray as xr
-from typing import Tuple
 
 from pycompo.core.sst_features import _update_features
 from pycompo.core.utils import round_away_from_zero
@@ -14,7 +14,7 @@ def get_featcen_data_cutouts(
         feature_props: xr.Dataset,
         feature_var: str,
         search_RadRatio: float,
-        ) -> Tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
+        ) -> tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
     """
     Extracts and processes feature-centric data cutouts from a given dataset.
 

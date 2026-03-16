@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from __future__ import annotations
 from scipy import ndimage
 import xarray as xr
 import numpy as np
@@ -9,7 +9,7 @@ def get_clusters(
     periodic_longitude_clustering: bool=False,
     remove_edge_clusters: bool=False,
     **kwargs,
-) -> Tuple[xr.DataArray, int]:
+    ) -> tuple[xr.DataArray, int]:
     """Get the convective clusters from convective regions."""
     clusters = xr.zeros_like(convective_regions)
     clusters_array, clusters_number = ndimage.label(
@@ -27,15 +27,16 @@ def get_clusters(
 
 
 def get_clusters_areas(
-    clusters: xr.DataArray, clusters_index: List[int], cells_area: xr.DataArray
-) -> List[float]:
-    """Get a list with the area of each convective core."""
+    clusters: xr.DataArray, clusters_index: list[int], cells_area: xr.DataArray
+    ) -> list[float]:
+    """Get a list with the area of each SST anomlay patch."""
     return ndimage.sum(cells_area, clusters, clusters_index)
 
 
 def _periodic_longitude_clustering(
         clusters_array: np.ndarray
-        ) -> Tuple[np.ndarray, int]:
+        ) -> tuple[np.ndarray, int]:
+    """ """
     for lat in range(clusters_array.shape[0]):
         if clusters_array[lat, 0] > 0 and clusters_array[lat, -1] > 0:
             clusters_array[clusters_array == clusters_array[lat, -1]] = \
@@ -51,7 +52,8 @@ def _periodic_longitude_clustering(
 
 def _remove_latitude_edge_clusters(
         clusters_array: np.ndarray
-        ) -> Tuple[np.ndarray, int]:
+        ) -> tuple[np.ndarray, int]:
+    """ """
     for lon in range(clusters_array.shape[1]):
         if clusters_array[0, lon] > 0:
             clusters_array[clusters_array == clusters_array[0, lon]] = 0
@@ -63,5 +65,6 @@ def _remove_latitude_edge_clusters(
 
 
 def _relabel_clusters(clusters_array: np.ndarray) -> np.ndarray:
+    """ """
     return np.unique(clusters_array, return_inverse=True)[1].reshape(
         clusters_array.shape)

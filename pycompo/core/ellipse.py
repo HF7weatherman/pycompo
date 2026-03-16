@@ -1,6 +1,6 @@
+from __future__ import annotations
 import numpy as np
 import xarray as xr
-from typing import Tuple
 
 from pycompo.core.coord import _calc_rota_featcen_cart_coords
 from pycompo.core.coord import get_centroid_coords
@@ -11,6 +11,7 @@ def get_ellipse_params(
         feature_props: xr.Dataset,
         coords_sphere: xr.Dataset,
         ) -> dict:
+    """ """
     ellipse_idx = _get_ellipse_params_idx(feature_props)
     ellipse_sphere = _ellipse_idx2sphere(ellipse_idx, coords_sphere)
     ellipse_featcen_sphere = _ellipse_sphere2featcen_sphere(ellipse_sphere)
@@ -31,6 +32,7 @@ def get_ellipse_params(
 
 
 def get_ellipse_equiv_radius(ax_maj, ax_min):
+    """ """
     return np.sqrt(ax_maj * ax_min)
 
 
@@ -40,6 +42,7 @@ def get_ellipse_equiv_radius(ax_maj, ax_min):
 def _get_ellipse_params_idx(
         feature_props: xr.Dataset,
         ) -> xr.Dataset:
+    """ """
     centroid_idx = feature_props['centroid_idx'].values
     orientation_idx = feature_props['orientation_idx'].values
     maj_len_idx = feature_props['axis_major_length_idx'].values
@@ -89,7 +92,7 @@ def _calc_polar_angle_rad(
 def _calc_axis_major_end(
         axis_major_length: float,
         polar_angle_rad: float,
-        ) -> Tuple[float, float]:
+        ) -> tuple[float, float]:
     """
     Calculate the end point coordinates of the major axis of an ellipse.
 
@@ -117,7 +120,7 @@ def _calc_axis_major_end(
 def _calc_axis_minor_end(
         axis_minor_length: float,
         polar_angle_rad: float,
-        ) -> Tuple[float, float]:
+        ) -> tuple[float, float]:
     """
     Calculate the end point coordinates of the minor axis of an ellipse.
 
@@ -148,7 +151,8 @@ def _calc_axis_minor_end(
 def _ellipse_idx2sphere(
         ellipse_idx: xr.Dataset,
         coords_sphere: xr.Dataset,
-    ) -> xr.Dataset:    
+    ) -> xr.Dataset:
+    """ """
     centr_sphere = get_centroid_coords(coords_sphere, ellipse_idx['centroid'])
     polar_angle_rad_sphere = ellipse_idx['polar_angle_rad']
     maj_end_sphere = ellipse_idx['maj_end'] * coords_sphere['dsphere']
@@ -166,6 +170,7 @@ def _ellipse_idx2sphere(
 def _ellipse_sphere2featcen_sphere(
         ellipse_sphere: xr.Dataset,
     ) -> xr.Dataset:
+    """ """
     ellipse_featcen_sphere = ellipse_sphere.copy()
     ellipse_featcen_sphere['centroid'] = ellipse_featcen_sphere['centroid'] * 0.
     return ellipse_featcen_sphere
@@ -175,6 +180,7 @@ def _ellipse_sphere2featcen_cart(
         ellipse_sphere: xr.Dataset,
         coords_sphere: xr.Dataset,
     ) -> xr.Dataset:
+    """ """
     dcart = _get_dcart(ellipse_sphere, coords_sphere)
 
     centroid_cart = ellipse_sphere['centroid'] * 0.
@@ -197,7 +203,8 @@ def _ellipse_sphere2featcen_cart(
 
 def _ellipse_featcen_cart2rota_featcen_cart(
         ellipse_cart: xr.Dataset,
-    ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    ) -> tuple[tuple[float, float], tuple[float, float]]:
+    """ """
     centroid_rota_cart = ellipse_cart['centroid']
     polar_angle_rad_rota_cart = ellipse_cart['polar_angle_rad'] * 0.
     maj_end_rota_cart = _calc_ellipse_rota_cart(ellipse_cart, axis='maj_end')
@@ -216,6 +223,7 @@ def _calc_ellipse_rota_cart(
         ellipse_cart: xr.Dataset,
         axis: str
         ) -> xr.DataArray:
+    """ """
     end_rota_cart = _calc_rota_featcen_cart_coords(
         ellipse_cart[axis].sel(component='x'),
         ellipse_cart[axis].sel(component='y'),
@@ -231,12 +239,18 @@ def _calc_ellipse_rota_cart(
 # Helper functions
 # ----------------
 def calc_ellipse_asprat(ellipse_data):
+    """ """
     return ellipse_data['maj_end'][:, 1]/ellipse_data['min_end'][:, 0]
 
 
 def _create_ellipse_dataset(
-        centroid, polar_angle_rad, maj_end, min_end, coords,
+        centroid,
+        polar_angle_rad,
+        maj_end,
+        min_end,
+        coords,
         ):
+    """ """
     return xr.Dataset(
         data_vars = {
             'centroid': (('feature', 'component'), centroid),
@@ -252,6 +266,7 @@ def _get_dcart(
         ellipse_sphere: xr.Dataset,
         coords_sphere: xr.Dataset,
         ) -> xr.Dataset:
+    """ """
     centroid_sphere = ellipse_sphere['centroid']
     centroid_lat = centroid_sphere.sel(component='lat')
     dlat = coords_sphere['dsphere'].sel(component='lat')

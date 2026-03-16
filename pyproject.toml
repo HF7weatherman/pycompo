@@ -19,10 +19,10 @@ dependencies = [
     "skimage",
     "sys",
     "traceback",
-    "typing",
     "warnings",
     "xarray",
     "yaml",
+    "grid_toolbox",
 ]
 description = "A python-based toolbox for composite analysis."
 requires-python = ">=3.10"
