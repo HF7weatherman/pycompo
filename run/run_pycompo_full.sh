@@ -6,7 +6,7 @@ if [ -z "$analysis_identifier" ]; then
     echo "Usage: $0 <analysis_identifier>"
     exit 1
 fi
-export ACCOUNT=bm1500
+export ACCOUNT=mh0731
 export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
 export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/drivers/get_features.py
 export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/drivers/combine_feature_props.py
@@ -43,7 +43,6 @@ export NUMEXPR_NUM_THREADS=1
     sleep 60  # check every 60 seconds
     # Get remaining time in minutes (Slurm format: HH:MM)
     rem=$(squeue -j $SLURM_JOB_ID -h -o %L | awk -F: '{print $1*60+$2}')
-    echo $rem
     if [[ $rem -lt 180 ]]; then
       echo "Time limit almost reached, requeueing..."
       scontrol requeue $SLURM_JOB_ID
@@ -57,7 +56,7 @@ EOF
 )
 
 # COMBINE FEATURE PROPS
-jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} --account=${ACCOUNT} <<EOF
+jobid2=$(sbatch --parsable --dependency=afterok:${jobid1} --account=${ACCOUNT} <<EOF
 #!/bin/bash
 #SBATCH --partition=compute
 #SBATCH --mem=0

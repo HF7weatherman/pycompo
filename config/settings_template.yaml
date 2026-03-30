@@ -1,5 +1,5 @@
 exp: ngc5004
-pycompo_name: pc_template
+pycompo_name: template
 test: True
 
 # Basic Data Settings
@@ -14,14 +14,14 @@ data:
     - sfc_rho
     - ps
   inpaths:
-    ts: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
-    uas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
-    vas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/vas_latlon/
-    tas: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/tas_latlon/
-    pr: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/pr_latlon/
-    sfc_rho: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfc_rho_latlon/
-    ps: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ps_latlon/
-  outpath: /work/mh0731/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
+    ts: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
+    uas: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
+    vas: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/vas_latlon/
+    tas: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/tas_latlon/
+    pr: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/pr_latlon/
+    sfc_rho: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/sfc_rho_latlon/
+    ps: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ps_latlon/
+  outpath: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pycompo_analysis
   analysis_time:
     - 2020-08-01T00:00:00Z
     - 2020-10-01T00:00:00Z

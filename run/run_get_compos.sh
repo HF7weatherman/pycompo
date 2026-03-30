@@ -8,7 +8,7 @@ if [ -z "$analysis_identifier" ]; then
 fi
 
 export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
-export RUNFILE=/home/m/m300738/libs/pycompo/pycompo/drivers/get_binned_composites.py
+export RUNFILE=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
 
 # GET COMPOSITES
 jobid3=$(sbatch --parsable --constraint=${node_size} <<EOF
@@ -19,9 +19,9 @@ jobid3=$(sbatch --parsable --constraint=${node_size} <<EOF
 #SBATCH --ntasks-per-node=1
 #SBATCH --nodes=1
 #SBATCH --time=08:00:00
-#SBATCH --job-name="get_binned_composites"
-#SBATCH --output=LOG/get_binned_composites.%j.out
-#SBATCH --error=LOG/get_binned_composites.%j.out
+#SBATCH --job-name="get_composites"
+#SBATCH --output=LOG/get_composites.%j.out
+#SBATCH --error=LOG/get_composites.%j.out
 #SBATCH --export=ALL
 
 source ~/.bashrc
