@@ -1,0 +1,104 @@
+#!/bin/bash
+
+analysis_identifier=${1}
+node_size=${2:-"256G"}
+if [ -z "$analysis_identifier" ]; then
+    echo "Usage: $0 <analysis_identifier>"
+    exit 1
+fi
+
+export ACCOUNT=mh0731
+export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
+export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/drivers/get_features_permut.py
+export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/drivers/combine_feature_props.py
+export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
+
+# GET FEATURES
+jobid1=$(sbatch --parsable --constraint=${node_size} --account=${ACCOUNT} <<'EOF'
+#!/bin/bash
+#SBATCH --partition=compute
+#SBATCH --mem=0
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --time=08:00:00
+#SBATCH --requeue
+#SBATCH --job-name="get_features"
+#SBATCH --output=LOG/get_features.%j.out
+#SBATCH --error=LOG/get_features.%j.out
+#SBATCH --export=ALL
+
+source ~/.bashrc
+micromamba activate TRR181L4
+
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+(
+  while true; do
+    sleep 60  # check every 60 seconds
+    # Get remaining time in minutes (Slurm format: HH:MM)
+    rem=$(squeue -j $SLURM_JOB_ID -h -o %L | awk -F: '{print $1*60+$2}')
+    echo $rem
+    if [[ $rem -lt 180 ]]; then
+      echo "Time limit almost reached, requeueing..."
+      scontrol requeue $SLURM_JOB_ID
+      exit 99
+    fi
+  done
+) &
+
+python3 "${RUNFILE1}" "${CONFIG_FILE}"
+EOF
+)
+
+# COMBINE FEATURE PROPS
+jobid2=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid1} --account=${ACCOUNT} <<EOF
+#!/bin/bash
+#SBATCH --partition=compute
+#SBATCH --mem=0
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --time=08:00:00
+#SBATCH --job-name="combine_feature_props"
+#SBATCH --output=LOG/combine_feature_props.%j.out
+#SBATCH --error=LOG/combine_feature_props.%j.out
+#SBATCH --export=ALL
+
+source ~/.bashrc
+micromamba activate TRR181L4
+
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+python3 "${RUNFILE2}" "${CONFIG_FILE}"
+EOF
+)
+
+# GET COMPOSITES
+jobid3=$(sbatch --parsable --constraint=${node_size} --dependency=afterok:${jobid2} --account=${ACCOUNT} <<EOF
+#!/bin/bash
+#SBATCH --partition=compute
+#SBATCH --mem=0
+#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --time=08:00:00
+#SBATCH --job-name="get_composites"
+#SBATCH --output=LOG/get_composites.%j.out
+#SBATCH --error=LOG/get_composites.%j.out
+#SBATCH --export=ALL
+
+source ~/.bashrc
+micromamba activate TRR181L4
+
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+python3 "${RUNFILE3}" "${CONFIG_FILE}"
+EOF
+)
