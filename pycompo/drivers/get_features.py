@@ -112,7 +112,7 @@ def main():
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
         dsample = pccoord.calc_sphere_convergence_components(
-            dsample, tuple(f"{var}_ano" for var in config['data']['wind_vars']),
+            dsample, tuple(f"{var}_ano" for var in config['data']['wind_vars']), # type: ignore
             )
         
         # calculate optional quantities
@@ -137,33 +137,36 @@ def main():
         # ----------------------------------------------------------------------
         # calculate population mean for correct Null hypothesis in sigtests
         # -----------------------------------------------------------------
-        if config['composite']['rainbelt_subsampling']['switch']:
-            ofile_popm_rb = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
-            rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
-            if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
-            popmeans_rb = calc_popmeans(dsample.where(rainbelt))
-            popmeans_rb.to_netcdf(str(opath_popm/ofile_popm_rb))
+        if not ofile_popm_at.exists():
+            if config['composite']['rainbelt_subsampling']['switch']:
+                ofile_popm_rb = Path(f"{ana_idf}_popmeans_rainbelt_{fdate_str}.nc")
+                rainbelt = get_rainbelt(ana_times, config, quantile=0.8).compute()
+                if config['test']: rainbelt = rainbelt.isel(time=slice(0, 2))
+                popmeans_rb = calc_popmeans(dsample.where(rainbelt))
+                popmeans_rb.to_netcdf(str(opath_popm/ofile_popm_rb))
 
-        popmeans_at = calc_popmeans(dsample)
-        popmeans_at.to_netcdf(str(ofile_popm_at))
+            popmeans_at = calc_popmeans(dsample)
+            popmeans_at.to_netcdf(str(ofile_popm_at))
 
         # ----------------------------------------------------------------------
         # extract and save anomaly features
         # ---------------------------------
-        features = Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
-            delayed(process_one_timestep_safe)(dsample, time, config)
-            for time in dsample['time']
-            )
-        features = pcsst.set_global_feature_id(features)
-        features = xr.concat(features, dim='feature')
-        features.attrs["identifier"] = ana_idf
-        if 'height_2' in features.coords:
-            features = features.drop_vars('height_2')
-        pcutil.sort_ds(features).to_netcdf(str(ofile_feat))
+        if not ofile_feat.exists():
+            features = \
+                Parallel(n_jobs=config['parallel']['n_jobs_get_features'])(
+                    delayed(process_one_timestep_safe)(dsample, time, config)
+                    for time in dsample['time']
+                    )
+            features = pcsst.set_global_feature_id(features)
+            features = xr.concat(features, dim='feature')
+            features.attrs["identifier"] = ana_idf
+            if 'height_2' in features.coords:
+                features = features.drop_vars('height_2')
+            pcutil.sort_ds(features).to_netcdf(str(ofile_feat))
+            del features
 
         # clean up
         del dsample
-        del features
         gc.collect()
 
         if config['test']: break
@@ -190,7 +193,7 @@ def process_one_timestep(
         config: dict,
         ) -> xr.Dataset:
     """ """
-    data = dset.sel(time=time)
+    data = dset.sel(time=slice(time, time))
     orig_coords = pccoord.get_coords_orig(data.drop_vars('time'))
     feat_var = config['data']['feature_var']
     if config['composite']['type'] == 'anomaly':
@@ -238,7 +241,7 @@ def process_one_timestep(
     featprops = featprops.where(
         featprops['feature_id'].isin(compo_data['feature_id']), drop=True,
     )
-    return xr.merge([featprops, compo_data])
+    return xr.merge([featprops, compo_data], compat='no_conflicts')
     
 
 # ------------------------------------------------------------------------------

@@ -30,7 +30,9 @@ def extract_sst_features(
     advanced_feature_props = _get_feature_props_idx_space(
         feature_map, property_list,
         )
-    feature_props = xr.merge([basic_feature_props, advanced_feature_props])
+    feature_props = xr.merge(
+        [basic_feature_props, advanced_feature_props], compat='no_conflicts',
+        )
     feature_props = feature_props.assign({
         f'{sst_dset.name}_mean': _area_weighted_feature_mean(
             feature_map, sst_dset, feature_props,
@@ -90,17 +92,11 @@ def _get_sst_features(
 
         return feature_radii
 
-    if "time" in data.dims and data.sizes["time"] > 1:
-        for time in data.time:
-            feature_radii = _get_sst_features_single_timestep(
-                data.sel(time=time), type, threshold,
-                )
-            times_list = times_list + [time.values]*len(feature_radii)
-            features = xr.concat(features_list, "time")
-
-    else:
-        feature_radii = _get_sst_features_single_timestep(data, type, threshold)
-        times_list = times_list + [data.time.values]*len(feature_radii)
+    for time in data.time:
+        feature_radii = _get_sst_features_single_timestep(
+            data.sel(time=time), type, threshold,
+            )
+        times_list = times_list + [time.values]*len(feature_radii)
         features = xr.concat(features_list, "time")
     
     feature_props = xr.Dataset(

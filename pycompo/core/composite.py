@@ -29,7 +29,9 @@ def get_compo_coords_ds(
     feature_compo_data = _check_feature_id_consistency_across_vars(
         feature_compo_data
         )
-    return xr.merge([feature_compo_data[var] for var in compo_vars])
+    return xr.merge(
+        [feature_compo_data[var] for var in compo_vars], compat='no_conflicts',
+        )
 
 
 def interpolate2compo_coords(
