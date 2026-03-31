@@ -227,8 +227,8 @@ def process_one_timestep(
     elif config['composite']['type'] == 'absolute':
         grad_var = feat_var
 
-    data, featprops, featdata = get_featcen_data_cutouts(
-        data, featprops, feat_var, config['cutout']['search_RadRatio'],
+    featprops, featdata = get_featcen_data_cutouts(
+        data, featprops, config['cutout']['search_RadRatio'],
         )
     featprops = pcwind.calc_feature_bg_wind(
         featprops, featdata, config['data']['wind_vars'],

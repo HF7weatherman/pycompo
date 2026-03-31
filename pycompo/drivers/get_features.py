@@ -204,8 +204,8 @@ def process_one_timestep(
     data[f"{feat_var}_feature"], featprops = pcsst.extract_sst_features(
         data[f"{feat_var}_ano_detect"], **config['feature']
         )
-    data, featprops, featdata = get_featcen_data_cutouts(
-        data, featprops, feat_var, config['cutout']['search_RadRatio'],
+    featprops, featdata = get_featcen_data_cutouts(
+        data, featprops, config['cutout']['search_RadRatio'],
         )
     featprops = pcwind.calc_feature_bg_wind(
         featprops, featdata, config['data']['wind_vars'],

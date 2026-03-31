@@ -12,9 +12,8 @@ from pycompo.core.utils import round_away_from_zero
 def get_featcen_data_cutouts(
         dset: xr.Dataset,
         feature_props: xr.Dataset,
-        feature_var: str,
         search_RadRatio: float,
-        ) -> tuple[xr.Dataset, xr.Dataset, list[xr.Dataset]]:
+        ) -> tuple[xr.Dataset, list[xr.Dataset]]:
     """
     Extracts and processes feature-centric data cutouts from a given dataset.
 
@@ -48,10 +47,8 @@ def get_featcen_data_cutouts(
         in rotated cartesian coordinates.
     """
     feature_data = cutout_feature_data(dset, feature_props, search_RadRatio)
-    dset[f"{feature_var}_feature"], feature_props = _update_features(
-        dset[f"{feature_var}_feature"], feature_props, feature_data,
-        )
-    return dset, feature_props, feature_data
+    feature_props = _update_features(feature_props, feature_data)
+    return feature_props, feature_data
 
 
 def cutout_feature_data(
