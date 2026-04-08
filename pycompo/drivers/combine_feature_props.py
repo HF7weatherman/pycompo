@@ -20,7 +20,7 @@ def run_combine_feature_props(
         'radius_km', 'area_km2', 'bg_uas', 'bg_vas', 'bg_sfcwind',
         'bg_sfcwind_dir', 'bg_tas-ts', 'ts_ano_detect_mean',
         'axis_major_length_idx', 'axis_minor_length_idx', 'orientation_idx',
-        'centroid_sphere',
+        'centroid_sphere', 'asprat_cart',
         ]
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
