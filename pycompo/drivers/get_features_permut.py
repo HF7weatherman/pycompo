@@ -29,7 +29,7 @@ def main():
     config = pcutil.read_yaml_config(config_file)
 
     ana_times = pcutil.create_analysis_times(config)
-    ana_idf = f"{config['exp']}_{config['pycompo_name']}_p"
+    ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     feat_var = config['data']['feature_var']
     wind_vars = config['data']['wind_vars']
     study_vars = config['data']['study_vars']
@@ -103,7 +103,7 @@ def main():
             dfilter['pr_fraction'] = dfilter['pr_ano']/dfilter['pr_bg']
             merge_dsets.append(dfilter['pr_fraction'].to_dataset())
         
-        dsample = xr.merge(merge_dsets)
+        dsample = xr.merge(merge_dsets, compat="no_conflicts")
 
         # add timelag and calculate gradients and convergence
         dsample = pcutil.add_timelag_idx_space(
@@ -255,16 +255,12 @@ def process_one_timestep(
             featdata = pcwind.add_wind_grads(featdata, featprops, "tas")
     featdata = pcwind.add_rotate_winds(featdata, featprops)
 
-    print_time = time.values if hasattr(time, 'values') else time
-    print(f"{print_time}: {featdata[0].data_vars}",
-          file=sys.stderr, flush=True)
-    
     # remapping to composite coordinate and creating consistent output array
     compo_data = get_compo_coords_ds(featdata, config)
     featprops = featprops.where(
         featprops['feature_id'].isin(compo_data['feature_id']), drop=True,
     )
-    return xr.merge([featprops, compo_data])
+    return xr.merge([featprops, compo_data], compat="no_conflicts")
     
 
 # ------------------------------------------------------------------------------

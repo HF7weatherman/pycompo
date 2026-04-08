@@ -40,7 +40,6 @@ export NUMEXPR_NUM_THREADS=1
     sleep 60  # check every 60 seconds
     # Get remaining time in minutes (Slurm format: HH:MM)
     rem=$(squeue -j $SLURM_JOB_ID -h -o %L | awk -F: '{print $1*60+$2}')
-    echo $rem
     if [[ $rem -lt 180 ]]; then
       echo "Time limit almost reached, requeueing..."
       scontrol requeue $SLURM_JOB_ID

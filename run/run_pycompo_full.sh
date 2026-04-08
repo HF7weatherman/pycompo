@@ -6,6 +6,7 @@ if [ -z "$analysis_identifier" ]; then
     echo "Usage: $0 <analysis_identifier>"
     exit 1
 fi
+
 export ACCOUNT=mh0731
 export CONFIG_FILE=/home/m/m300738/libs/pycompo/config/settings_${analysis_identifier}.yaml
 export RUNFILE1=/home/m/m300738/libs/pycompo/pycompo/drivers/get_features.py
@@ -13,10 +14,6 @@ export RUNFILE2=/home/m/m300738/libs/pycompo/pycompo/drivers/combine_feature_pro
 export RUNFILE3=/home/m/m300738/libs/pycompo/pycompo/drivers/get_composites.py
 
 # GET FEATURES
-#OUTPATH=$(grep outpath ${CONFIG_FILE} | cut -d ":" -f2 | xargs)
-#FLAG_FILE="${OUTPATH}/${1}/features/getting_features.flag"
-#touch ${FLAG_FILE}
-
 jobid1=$(sbatch --parsable --constraint=${node_size} --account=${ACCOUNT} <<'EOF'
 #!/bin/bash
 #SBATCH --partition=compute

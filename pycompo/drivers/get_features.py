@@ -232,10 +232,6 @@ def process_one_timestep(
             featdata = pcwind.add_wind_grads(featdata, featprops, "tas")
     featdata = pcwind.add_rotate_winds(featdata, featprops)
 
-    print_time = time.values if hasattr(time, 'values') else time
-    print(f"{print_time}: {featdata[0].data_vars}",
-          file=sys.stderr, flush=True)
-    
     # remapping to composite coordinate and creating consistent output array
     compo_data = get_compo_coords_ds(featdata, config)
     featprops = featprops.where(
