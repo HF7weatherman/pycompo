@@ -63,13 +63,16 @@ def main():
 
         dsample = pcutil.subsample_data(dset, start_time, end_time, config)
         if config['test']: dsample = dsample.isel(time=slice(0, 2))
-
         if config['detrend']['switch']:
             dsample, feat_var, varlist = \
                 pcfilter.detrend_with_hourly_climatology(
                     dsample, feat_var, config,
                     )
         for var in varlist: dsample[var] = dsample[var].compute()
+
+        dsample = pccoord.calc_sphere_convergence_components(
+            dsample, tuple(var for var in config['data']['wind_vars']), # type: ignore
+            )
         
         # ----------------------------------------------------------------------
         # scale separation
@@ -111,9 +114,6 @@ def main():
             dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
-        dsample = pccoord.calc_sphere_convergence_components(
-            dsample, tuple(f"{var}_ano" for var in config['data']['wind_vars']), # type: ignore
-            )
         
         # calculate optional quantities
         if 'tas' in config['data']['study_vars']:
