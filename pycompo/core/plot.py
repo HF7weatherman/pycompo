@@ -738,9 +738,13 @@ def _plot_feature_circle(
     axis: Axes,
     center: Tuple[float | int, float | int],
     radius: float | int,
+    color: str='k',
+    ls: str='-.',
+    lw: float=1.5,
+    zorder: int=2,
     ) -> None:
     circle = plt.Circle(
-        center, radius, fill=False, color='k', ls='-.', lw=1.5, zorder=2,
+        center, radius, fill=False, color=color, ls=ls, lw=lw, zorder=zorder,
     )
     axis.add_patch(circle)
     
