@@ -261,21 +261,23 @@ def adjust_units(
     for var in vars:
         if var in [
             'downwind_ts_ano_grad', 'crosswind_ts_ano_grad',
-            'downwind_ts_grad', 'crosswind_ts_grad',
+            'downwind_tas_ano_grad', 'crosswind_tas_ano_grad',
             ]:
             data_adjusted[var] = data_adjusted[var] * 1e5
-        if var in ['ts_laplacian', 'ts_ano_laplacian']:
+        if var in ['ts_ano_laplacian', 'tas_ano_laplacian']:
             data_adjusted[var] = data_adjusted[var] * 1e10
-        if var in ['cllvi_ano', 'clivi_ano']:
+        if var in ['cllvi_ano', 'clivi_ano', 'clwvi_ano', 'prw_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
-        if var in ['sfcwind_conv_ano']:
-            data_adjusted[var] = data_adjusted[var] * 1e5
+        if var in ['sfcwind_conv_ano', 'uas_ano_conv', 'vas_ano_conv']:
+            data_adjusted[var] = data_adjusted[var] * 1e6
         if var in ['wa_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
         if var in ['hus_ano', 'clw_ano', 'cli_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e6
         if var in ['hfls_ano', 'hfss_ano']:
             data_adjusted[var] = data_adjusted[var] * -1
+        if var in ['uas_ano', 'vas_ano', 'sfcwind_ano']:
+            data_adjusted[var] = data_adjusted[var] * 100
     return data_adjusted
 
 
