@@ -1,0 +1,107 @@
+exp: ifs_tco3999-ng5_deepoff
+pycompo_name: opv0_w1
+test: False
+
+# Basic Data Settings
+data:
+  feature_var: ts
+  wind_vars:
+    - uas
+    - vas
+  study_vars:
+    - tas
+    - pr
+    - prw
+    - hfls
+    - hfss
+    - rlut
+    - cllvi
+    - clivi
+    - clwvi
+    - sfcwind
+    - sfcwind_conv
+    - uas_conv
+    - vas_conv
+    - ps
+  inpaths:
+    ts: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/ts_latlon/
+    uas: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/uas_latlon/
+    vas: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/vas_latlon/
+    tas: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/tas_latlon/
+    pr: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/pr_latlon/
+    prw: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/prw_latlon/
+    hfls: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/hfls_latlon/
+    hfss: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/hfss_latlon/
+    rlut: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/rlut_latlon/
+    cllvi: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/cllvi_latlon/
+    clivi: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/clivi_latlon/
+    clwvi: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/clwvi_latlon/
+    sfcwind: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/sfcwind_latlon/
+    sfcwind_conv: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/sfcwind_conv_latlon/
+    uas_conv: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/uas_conv_latlon/
+    vas_conv: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/vas_conv_latlon/
+    ps: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pp/P1D/ps_latlon/
+  outpath: /work/bm1500/m300738/project_TRR181L4/data/ifs_tco3999-ng5_deepoff_pycompo_analysis
+  analysis_time:
+    - 2020-03-01T00:00:00Z
+    - 2021-03-01T00:00:00Z
+  spd: 1
+  timelag_idx: 1
+
+# Basic Analysis Settings
+lat_range:
+  - -15.0
+  - 15.0
+
+# Detrending Settings
+detrend:
+  switch: False
+  clim_baseyear: 2020
+  clim_avg_days: 30
+
+# Filtering settings
+filter:
+  lat_mid: 0.0
+  cutoff_scale_km: 100.0
+  truncation: 1
+
+# SST-Feature Detection Settings
+feature:
+  type: warm # options: warm, cold
+  threshold: 0.15 # in K, negative for cold features, positive for warm features
+  connectivity: 8
+  min_area: 400.0
+  max_ar: 5.
+  property_list:
+    - centroid
+    - axis_major_length
+    - axis_minor_length
+    - orientation
+
+# Data Cutout Sample Settings
+cutout:
+  search_RadRatio: 5.0
+
+# Composite Settings
+composite:
+  type: anomaly # options: anomaly, absolute
+  compo_x:
+    - -4.0
+    - 4.1
+    - 0.1
+  compo_y:
+    - -4.0
+    - 4.1
+    - 0.1
+  rainbelt_subsampling:
+    switch: True
+    mode: roll_avg
+  subgroup_vars:
+    - bg_sfcwind: [0., 4., 8., 100.]
+    - radius_km: [0., 18., 36., 1000.]
+    - ts_ano_detect_mean: [0., 0.175, 0.2, 10.]
+    - asprat_idx: [0., 2.5, 5.0, 100.]
+
+# Parallelization
+parallel:
+  n_jobs_get_features: 32  # Set to 32 for daily data and to 64 for (3-)hourly data. Keep below 64 to allow each worker enough memory.

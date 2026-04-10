@@ -118,7 +118,7 @@ composite:
     - bg_sfcwind: [0., 4., 8., 100.]
     - radius_km: [0., 18., 36., 1000.]
     - ts_ano_detect_mean: [0., 0.175, 0.2, 10.]
-    - asprat_idx: [0., 2.5, 5.0, 100.]
+    - asprat_cart: [0., 2.4, 4.8, 100.]
 
 # Parallelization
 parallel:
