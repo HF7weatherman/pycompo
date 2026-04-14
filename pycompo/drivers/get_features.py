@@ -30,6 +30,15 @@ def main():
     config = pcutil.read_yaml_config(config_file)
 
     ana_times = pcutil.create_analysis_times(config)
+    
+    # --------------------------------------------------------------------------
+    # Temporary fix for IFS
+    if config['exp'] in [
+        'ifs_tco3999-ng5_deepoff', 'ifs_tco3999-ng5_rcbmf', 'ifs_tco3999_rcbmf',
+        ]:
+        ana_times[-1] = np.datetime64("2021-02-28T00:00:00Z")
+    # --------------------------------------------------------------------------
+    
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     feat_var = config['data']['feature_var']
     wind_vars = config['data']['wind_vars']
@@ -69,10 +78,6 @@ def main():
                     dsample, feat_var, config,
                     )
         for var in varlist: dsample[var] = dsample[var].compute()
-
-        dsample = pccoord.calc_sphere_convergence_components(
-            dsample, tuple(var for var in config['data']['wind_vars']), # type: ignore
-            )
         
         # ----------------------------------------------------------------------
         # scale separation

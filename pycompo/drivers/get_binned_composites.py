@@ -9,7 +9,6 @@ from typing import Tuple
 import pycompo.core.composite as pccompo
 import pycompo.core.utils as pcutil
 import pycompo.core.sigtest as pcsig
-from pycompo.core.sst_features import calc_asprat_idx
 
 warnings.filterwarnings(action='ignore')
 
@@ -98,7 +97,6 @@ def run_get_binned_composites(
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         ifile = ipath/Path(f"features/{ana_idf}_features_{fdate_str}.nc")
         feats_at = xr.open_dataset(ifile).compute()
-        feats_at['asprat_idx'] = calc_asprat_idx(feats_at)
         
         for var, thresholds in subgroup_vars.items():
             compo_bin, var_bin, N_feats_bin = \
