@@ -22,6 +22,10 @@ def run_combine_feature_props(
         'axis_major_length_idx', 'axis_minor_length_idx', 'orientation_idx',
         'centroid_sphere', 'asprat_cart',
         ]
+
+    def get_existing_keep_props(dataset: xr.Dataset) -> list[str]:
+        return [prop for prop in KEEP_PROPS if prop in dataset]
+
     ana_times = pcutil.create_analysis_times(config)
     ana_idf = f"{config['exp']}_{config['pycompo_name']}"
     ipath = Path(f"{config['data']['outpath']}/{ana_idf}/features/")
@@ -38,11 +42,11 @@ def run_combine_feature_props(
         fdate_str = pcutil.create_ftime_str(start_time, end_time)
         ifile = ipath/Path(f"{ana_idf}_features_{fdate_str}.nc")
         features_at = xr.open_dataset(ifile).compute()
-        featprops_at.append(features_at[KEEP_PROPS])
+        featprops_at.append(features_at[get_existing_keep_props(features_at)])
 
         if rainbelt_switch:
             features_rb = sample_features_geomask(features_at, rainbelt)
-            featprops_rb.append(features_rb[KEEP_PROPS])
+            featprops_rb.append(features_rb[get_existing_keep_props(features_rb)])
         
     featprops_at = xr.concat(set_global_feature_id(featprops_at), dim='feature')
     pcutil.sort_ds(featprops_at).to_netcdf(str(outfiles['alltrops']))
