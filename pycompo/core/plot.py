@@ -499,11 +499,11 @@ def plot_coord_trafo(
         )
 
     # Plot grid lines
-    _add_grid(axs[0, 1], dset['featcen_lon'], dset['featcen_lat'])
-    _add_grid(axs[1, 0], dset['featcen_x'], dset['featcen_y'])
-    _add_grid(axs[1, 1], dset['rota_featcen_x'], dset['rota_featcen_y'])
-    _add_grid(axs[2, 0], dset['En_rota_featcen_x'], dset['En_rota_featcen_y'])
-    _add_grid(axs[2, 1], dset['En_rota2_featcen_x'], dset['En_rota2_featcen_y'])
+    plot_feature_grid(axs[0, 1], dset['featcen_lon'], dset['featcen_lat'])
+    plot_feature_grid(axs[1, 0], dset['featcen_x'], dset['featcen_y'])
+    plot_feature_grid(axs[1, 1], dset['rota_featcen_x'], dset['rota_featcen_y'])
+    plot_feature_grid(axs[2, 0], dset['En_rota_featcen_x'], dset['En_rota_featcen_y'])
+    plot_feature_grid(axs[2, 1], dset['En_rota2_featcen_x'], dset['En_rota2_featcen_y'])
     
     # Plot feature ellipses/circles
     _plot_feature_ellipse(
@@ -515,8 +515,8 @@ def plot_coord_trafo(
     _plot_feature_ellipse(
         axs[1, 1], ellipse['rota_featcen_cart'].isel(feature=feature_id)
         )
-    _plot_feature_circle(axs[2, 0], (0, 0), 1)
-    _plot_feature_circle(axs[2, 1], (0, 0), 1)
+    plot_feature_circle(axs[2, 0], (0, 0), 1)
+    plot_feature_circle(axs[2, 1], (0, 0), 1)
     
     # Plot wind features
     axs[0, 0].quiver(
@@ -567,10 +567,10 @@ def plot_composite(
     )
     if sigmask is not None: plot_sigmask(axs, sigmask)
 
-    _add_grid(
+    plot_feature_grid(
         axs, compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
         )
-    _plot_feature_circle(axs, (0, 0), 1)
+    plot_feature_circle(axs, (0, 0), 1)
     plt.gca().set_aspect('equal')
     plt.colorbar(pl1, ax=axs, label=CLABEL[var])
 
@@ -609,11 +609,11 @@ def plot_composite_overview(
                 vmax=COMPO_PLOT_RANGE[var][1],
             )
         if sigmask is not None: plot_sigmask(axs.ravel()[i], sigmask[var])
-        _add_grid(
+        plot_feature_grid(
             axs.ravel()[i],
             compo_data['En_rota2_featcen_x'], compo_data['En_rota2_featcen_y'],
             )
-        _plot_feature_circle(axs.ravel()[i], (0, 0), 1)
+        plot_feature_circle(axs.ravel()[i], (0, 0), 1)
         axs.ravel()[i].set_aspect('equal')
         axs.ravel()[i].set_title(
             COMPO_PLOT_LABEL[var], weight='bold', pad=12, fontsize=11,
@@ -718,23 +718,23 @@ def _plot_feature_ellipse(
         width=np.sqrt((2 * maj_end[0]) ** 2 + (2 * maj_end[1]) ** 2),
         height=np.sqrt((2 * min_end[0]) ** 2 + (2 * min_end[1]) ** 2),
         angle=np.rad2deg(polar_angle_rad),
-        edgecolor='k', facecolor='none', lw=1.5, ls='-.', zorder=2,
+        edgecolor='k', facecolor='none', lw=1, ls='-.', zorder=2,
     )
     axis.add_patch(ellipse_patch)
     
     axis.plot(
         [-maj_end.isel(component=1), maj_end.isel(component=1)],
         [-maj_end.isel(component=0), maj_end.isel(component=0)],
-        zorder=2,
+        zorder=2, color='k', lw=1, ls='-.',
         )
     axis.plot(
         [-min_end.isel(component=1), min_end.isel(component=1)],
         [-min_end.isel(component=0), min_end.isel(component=0)],
-        zorder=2,
+        zorder=2, color='k', lw=1, ls='-.',
         )
     
 
-def _plot_feature_circle(
+def plot_feature_circle(
     axis: Axes,
     center: Tuple[float | int, float | int],
     radius: float | int,
@@ -749,7 +749,7 @@ def _plot_feature_circle(
     axis.add_patch(circle)
     
 
-def _add_grid(
+def plot_feature_grid(
         axis: Axes,
         x_coord: xr.DataArray,
         y_coord: xr.DataArray,
