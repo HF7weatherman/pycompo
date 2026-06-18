@@ -16,10 +16,6 @@ data:
     - clw
     - cli
     - mse_e
-#    - pfull
-#    - ua
-#    - va
-#    - wa
   inpaths:
     ts: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/ts_latlon/
     uas: /work/bm1500/m300738/project_TRR181L4/data/ngc5004_pp/P1D/uas_latlon/
