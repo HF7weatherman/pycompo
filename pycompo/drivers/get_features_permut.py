@@ -110,9 +110,6 @@ def main():
             dsample, f"{feat_var}_ano", config['data']['timelag_idx'],
             )
         dsample = pccoord.calc_sphere_gradient_laplacian(dsample, grad_var)
-        dsample = pccoord.calc_sphere_convergence_components(
-            dsample, tuple(f"{var}_ano" for var in config['data']['wind_vars']), # type: ignore
-            )
         
         # calculate optional quantities
         if 'tas' in config['data']['study_vars']:

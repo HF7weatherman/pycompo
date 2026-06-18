@@ -268,7 +268,7 @@ def adjust_units(
             data_adjusted[var] = data_adjusted[var] * 1e10
         if var in ['cllvi_ano', 'clivi_ano', 'clwvi_ano', 'prw_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
-        if var in ['sfcwind_conv_ano', 'uas_ano_conv', 'vas_ano_conv']:
+        if var in ['sfcwind_conv_ano', 'uas_conv_ano', 'vas_conv_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e6
         if var in ['wa_ano']:
             data_adjusted[var] = data_adjusted[var] * 1e3
@@ -276,8 +276,10 @@ def adjust_units(
             data_adjusted[var] = data_adjusted[var] * 1e6
         if var in ['hfls_ano', 'hfss_ano']:
             data_adjusted[var] = data_adjusted[var] * -1
-        if var in ['uas_ano', 'vas_ano', 'sfcwind_ano']:
+        if var in ['uas_ano', 'vas_ano', 'sfcwind_ano', 'ua_ano', 'va_ano']:
             data_adjusted[var] = data_adjusted[var] * 100
+        if var in ['ps_ano_laplacian']:
+            data_adjusted[var] = data_adjusted[var] * 1e10
     return data_adjusted
 
 
@@ -313,6 +315,8 @@ def get_binned_features(
         var: str,
         ) -> tuple[dict, dict, dict]:
     """ """
+    if var == 'ts_ano_detect_mean':
+        features = features.where(features['radius_km'] <= 40, drop=True)
     compo_bin, var_bin, N_feats_bin = {}, {}, {}
     for start, end in zip(thresholds, thresholds[1:]):
         key = f"bin_{var}_{start}-{end}"
